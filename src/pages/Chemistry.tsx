@@ -729,12 +729,12 @@ const Chemistry = () => {
                   <Input
                     type="number"
                     min={0.01}
-                    step={0.1}
+                    step="any"
                     value={usageForm.quantity}
                     onChange={(e) =>
                       setUsageForm((f) => ({ ...f, quantity: e.target.value }))
                     }
-                    placeholder="1,5"
+                    placeholder="1,5 или 1.5"
                   />
                 </FormControl>
                 <FormControl>
