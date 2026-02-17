@@ -9,17 +9,19 @@ const api = axios.create({
   },
 });
 
-// Interceptor для добавления токена
+// Interceptor для добавления токена ко всем запросам
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("auth-storage");
-  if (token) {
+  const raw = localStorage.getItem("auth-storage");
+  if (raw) {
     try {
-      const { state } = JSON.parse(token);
-      if (state?.token) {
-        config.headers.Authorization = `Bearer ${state.token}`;
+      const parsed = JSON.parse(raw);
+      // Zustand persist: { state: { token, user, ... }, version?: number }
+      const token = parsed?.state?.token ?? parsed?.token;
+      if (token && typeof token === "string") {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error("Failed to parse token:", error);
+      console.error("Failed to parse auth storage:", error);
     }
   }
   return config;

@@ -27,22 +27,26 @@ export const useAuth = create<AuthState>()(
       login: async (phone: string, password: string) => {
         try {
           const response = await authAPI.login(phone, password);
-          const { accessToken, user } = response.data;
-          
+          const data = response.data;
+          const user = data.user;
+          // Бэкенд может отдавать accessToken или token
+          const token = data.accessToken ?? data.token;
+          if (!token || !user) {
+            throw new Error('Неверный формат ответа от сервера');
+          }
           // Проверяем, что пользователь имеет права администратора
           if (user.role === 'CLIENT') {
             throw new Error('У вас нет прав доступа к админ-панели');
           }
-          
-          set({ 
+          set({
             user: {
               id: user.id,
               phone: user.phone,
               name: user.name,
               role: user.role,
-            }, 
-            token: accessToken, 
-            isAuthenticated: true 
+            },
+            token,
+            isAuthenticated: true,
           });
         } catch (error: any) {
           console.error('Login error:', error);
