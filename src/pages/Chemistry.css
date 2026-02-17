@@ -1,0 +1,264 @@
+.chemistry-page {
+  max-width: 1400px;
+}
+
+.chemistry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.chemistry-header h1 {
+  font-size: 32px;
+  color: #111827;
+}
+
+.add-chemical-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.add-chemical-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  color: #111827;
+}
+
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.chemical-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.chemical-card.low-stock {
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.chemical-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.chemical-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.chemical-header h3 {
+  font-size: 18px;
+  color: #111827;
+  margin: 0;
+}
+
+.low-stock-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.chemical-brand {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.chemical-category {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.chemical-stock {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.stock-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stock-info:last-child {
+  margin-bottom: 0;
+}
+
+.stock-label {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.stock-value {
+  color: #111827;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.chemical-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.record-usage-btn {
+  flex: 1;
+  padding: 10px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.record-usage-btn:hover {
+  background: #5568d3;
+}
+
+.edit-btn {
+  padding: 10px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: #e5e7eb;
+}
+
+.usage-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.stat-box {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-box .stat-label {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-box .stat-value {
+  color: #111827;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.usage-table {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.usage-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.usage-table thead {
+  background: #f9fafb;
+}
+
+.usage-table th {
+  padding: 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.usage-table td {
+  padding: 16px;
+  border-top: 1px solid #f3f4f6;
+  color: #374151;
+  font-size: 14px;
+}
+
+.usage-table .chemical-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.usage-table .cost {
+  font-weight: 600;
+  color: #059669;
+}
+
+.usage-table .notes {
+  color: #6b7280;
+  font-style: italic;
+}

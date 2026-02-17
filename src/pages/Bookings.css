@@ -1,0 +1,147 @@
+.bookings-page h1 {
+  font-size: 32px;
+  color: #111827;
+  margin-bottom: 32px;
+}
+
+.date-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.date-btn {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+  text-align: center;
+}
+
+.date-btn:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.date-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+}
+
+.date-day {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.date-number {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.date-month {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.slots-container h2 {
+  font-size: 24px;
+  color: #111827;
+  margin-bottom: 20px;
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.slot-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.slot-card.free {
+  border-color: #10b981;
+}
+
+.slot-card.booked {
+  border-color: #ef4444;
+}
+
+.slot-time {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 12px;
+}
+
+.slot-free {
+  color: #10b981;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.slot-booking {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slot-client {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slot-client strong {
+  color: #111827;
+  font-size: 15px;
+}
+
+.slot-client span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.slot-car {
+  color: #374151;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.slot-services {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.cancel-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #fecaca;
+}
