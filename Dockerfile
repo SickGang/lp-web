@@ -1,17 +1,17 @@
 # Используем Node.js 20
 FROM node:20-alpine as builder
 
-# Устанавливаем yarn глобально
-RUN corepack enable && corepack prepare yarn@stable --activate
+# Yarn 1 (classic) — в репозитории lockfile v1
+RUN corepack enable && corepack prepare yarn@1.22.22 --activate
 
 WORKDIR /app
 
-# Копируем конфиги yarn
+# Копируем конфиги и lockfile для воспроизводимой сборки
 COPY .yarnrc.yml* ./
-COPY package.json ./
+COPY package.json yarn.lock ./
 
 # Устанавливаем зависимости
-RUN yarn install
+RUN yarn install --frozen-lockfile
 
 # Копируем исходный код
 COPY . .
