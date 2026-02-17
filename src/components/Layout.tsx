@@ -1,50 +1,97 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import './Layout.css';
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import {
+  Box,
+  VStack,
+  Heading,
+  Text,
+  Button,
+  Flex,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { useAuth } from "../hooks/useAuth";
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const sidebarBg = useColorModeValue("gray.900", "gray.900");
+  const navHoverBg = useColorModeValue("gray.800", "gray.700");
+  const navActiveBg = useColorModeValue("gray.700", "gray.600");
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
+  const navLinks = [
+    { to: "/dashboard", label: "Дашборд", icon: "📊" },
+    { to: "/bookings", label: "Записи на мойку", icon: "📅" },
+    ...(user?.role === "OWNER"
+      ? [{ to: "/users", label: "Пользователи", icon: "👥" }]
+      : []),
+    { to: "/chemistry", label: "Учет химии", icon: "🧪" },
+  ];
+
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2>🚗 CarWash Admin</h2>
-          <div className="user-info">
-            <p className="user-name">{user?.name || user?.phone}</p>
-            <p className="user-role">{user?.role === 'OWNER' ? 'Владелец' : 'Администратор'}</p>
-          </div>
-        </div>
-        <nav className="nav">
-          <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            📊 Дашборд
-          </NavLink>
-          <NavLink to="/bookings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            📅 Записи на мойку
-          </NavLink>
-          {user?.role === 'OWNER' && (
-            <NavLink to="/users" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              👥 Пользователи
-            </NavLink>
-          )}
-          <NavLink to="/chemistry" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-            🧪 Учет химии
-          </NavLink>
-        </nav>
-        <button className="logout-btn" onClick={handleLogout}>
+    <Flex minH="100vh" bg="gray.50">
+      <Box
+        as="aside"
+        w="260px"
+        bg={sidebarBg}
+        color="white"
+        py={6}
+        px={4}
+        display="flex"
+        flexDirection="column"
+      >
+        <VStack align="stretch" spacing={6} flex={1}>
+          <Box>
+            <Heading size="md" mb={2}>
+              LP Detailing
+            </Heading>
+            <Text fontSize="sm" color="gray.400">
+              {user?.name || user?.phone}
+            </Text>
+            <Text fontSize="xs" color="gray.500">
+              {user?.role === "OWNER" ? "Владелец" : "Администратор"}
+            </Text>
+          </Box>
+          <VStack align="stretch" spacing={1} as="nav">
+            {navLinks.map(({ to, label, icon }) => (
+              <NavLink key={to} to={to}>
+                {({ isActive }) => (
+                  <Box
+                    as="span"
+                    display="block"
+                    px={4}
+                    py={2}
+                    borderRadius="md"
+                    bg={isActive ? navActiveBg : "transparent"}
+                    _hover={{ bg: navHoverBg }}
+                    color={isActive ? "white" : "gray.300"}
+                    fontSize="sm"
+                  >
+                    {icon} {label}
+                  </Box>
+                )}
+              </NavLink>
+            ))}
+          </VStack>
+        </VStack>
+        <Button
+          size="sm"
+          variant="ghost"
+          colorScheme="gray"
+          color="gray.400"
+          _hover={{ bg: "gray.800", color: "white" }}
+          onClick={handleLogout}
+        >
           🚪 Выйти
-        </button>
-      </aside>
-      <main className="main-content">
+        </Button>
+      </Box>
+      <Box as="main" flex={1} p={8} overflow="auto">
         <Outlet />
-      </main>
-    </div>
+      </Box>
+    </Flex>
   );
 };
 

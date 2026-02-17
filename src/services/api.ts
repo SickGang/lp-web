@@ -27,6 +27,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// При 403 (Forbidden) — недостаточно прав: выходим и перенаправляем на логин
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403) {
+      localStorage.removeItem("auth-storage");
+      const loginPath = window.location.pathname.includes("/login") ? "" : "/login";
+      if (loginPath) {
+        window.location.href = loginPath + "?reason=forbidden";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authAPI = {
   login: (phone: string, password: string) =>

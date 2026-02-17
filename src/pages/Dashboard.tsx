@@ -1,37 +1,36 @@
-import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
-import { adminAPI } from "../services/api";
-import "./Dashboard.css";
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import {
+  Box,
+  Heading,
+  Text,
+  SimpleGrid,
+  Card,
+  CardBody,
+  VStack,
+  useColorModeValue,
+} from '@chakra-ui/react';
+import { adminAPI } from '../services/api';
 
 interface ApiBooking {
   id: number;
   startTime: string;
   endTime: string;
   status: string;
-  user: {
-    name: string;
-    phone: string;
-  };
-  car?: {
-    brand: string;
-    model: string;
-  };
-  services: Array<{
-    service: {
-      name: string;
-    };
-  }>;
+  user: { name?: string; phone?: string };
+  car?: { brand: string; model: string };
+  services?: Array<{ service?: { name?: string } }>;
 }
 
 const Dashboard = () => {
-  // Загружаем статистику из API
+  const cardBg = useColorModeValue('white', 'gray.800');
   const {
     data: stats,
     isLoading: statsLoading,
     isError: statsError,
   } = useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await adminAPI.getDashboardStats();
       return response.data;
@@ -39,13 +38,12 @@ const Dashboard = () => {
     retry: 1,
   });
 
-  // Загружаем ближайшие записи из API
   const {
     data: bookingsData,
     isLoading: bookingsLoading,
     isError: bookingsError,
   } = useQuery({
-    queryKey: ["upcoming-bookings"],
+    queryKey: ['upcoming-bookings'],
     queryFn: async () => {
       const response = await adminAPI.getUpcomingBookings(10);
       return response.data;
@@ -53,103 +51,94 @@ const Dashboard = () => {
     retry: 1,
   });
 
-  const upcomingBookings =
-    bookingsData?.map((booking: ApiBooking) => ({
-      id: booking.id,
-      time: format(new Date(booking.startTime), "HH:mm"),
-      client: booking.user.name || booking.user.phone,
-      phone: booking.user.phone,
-      car: booking.car
-        ? `${booking.car.brand} ${booking.car.model}`
-        : "Не указан",
-      services: booking.services.map((s) => s.service.name).join(", "),
-    })) || [];
+  const rawBookings = Array.isArray(bookingsData)
+    ? bookingsData
+    : (bookingsData as { data?: ApiBooking[] })?.data ?? [];
+  // Время в UTC, как в БД (без сдвига по часовому поясу браузера)
+  const formatTimeUtc = (isoString: string) => {
+    const d = new Date(isoString);
+    return d.toISOString().slice(11, 16);
+  };
+  const upcomingBookings = rawBookings.map((booking: ApiBooking) => ({
+    id: booking.id,
+    time: formatTimeUtc(booking.startTime),
+    client: booking.user?.name || booking.user?.phone || '—',
+    phone: booking.user?.phone || '—',
+    car: booking.car
+      ? `${booking.car.brand} ${booking.car.model}`
+      : 'Не указан',
+    services: (booking.services ?? [])
+      .map((s) => s?.service?.name)
+      .filter(Boolean)
+      .join(', ') || '—',
+  }));
 
   if (statsLoading || bookingsLoading) {
     return (
-      <div className="dashboard">
-        <h1>Загрузка...</h1>
-      </div>
+      <Box>
+        <Heading size="lg" mb={4}>Загрузка...</Heading>
+      </Box>
     );
   }
 
   if (statsError || bookingsError) {
     return (
-      <div className="dashboard">
-        <h1>Ошибка загрузки данных</h1>
-        <p>Убедитесь, что API сервер запущен (yarn api:dev)</p>
-      </div>
+      <Box>
+        <Heading size="lg" mb={2}>Ошибка загрузки данных</Heading>
+        <Text color="gray.600">Убедитесь, что API сервер запущен.</Text>
+      </Box>
     );
   }
 
+  const statCards = [
+    { label: 'Записей сегодня', value: stats?.todayBookings ?? 0, icon: '📅' },
+    { label: 'Записей на неделю', value: stats?.weekBookings ?? 0, icon: '📊' },
+    {
+      label: 'Доход за месяц',
+      value: `${((stats?.monthRevenue ?? 0) / 100).toLocaleString('ru-RU')} ₽`,
+      icon: '💰',
+    },
+    { label: 'Активных клиентов', value: stats?.activeClients ?? 0, icon: '👥' },
+  ];
+
   return (
-    <div className="dashboard">
-      <h1>Дашборд</h1>
-      <p className="date">
-        {format(new Date(), "d MMMM yyyy, EEEE", { locale: ru })}
-      </p>
+    <Box>
+      <Heading size="lg" mb={1} color="gray.800">Дашборд</Heading>
+      <Text color="gray.600" fontSize="sm" mb={6}>
+        {format(new Date(), 'd MMMM yyyy, EEEE', { locale: ru })}
+      </Text>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">📅</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats?.todayBookings || 0}</div>
-            <div className="stat-label">Записей сегодня</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats?.weekBookings || 0}</div>
-            <div className="stat-label">Записей на неделю</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <div className="stat-value">
-              {((stats?.monthRevenue || 0) / 100).toLocaleString("ru-RU")} ₽
-            </div>
-            <div className="stat-label">Доход за месяц</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats?.activeClients || 0}</div>
-            <div className="stat-label">Активных клиентов</div>
-          </div>
-        </div>
-      </div>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={8}>
+        {statCards.map(({ label, value, icon }) => (
+          <Card key={label} bg={cardBg} borderWidth="1px" borderColor="gray.200">
+            <CardBody>
+              <Text fontSize="2xl" mb={1}>{icon}</Text>
+              <Text fontSize="2xl" fontWeight="bold" color="gray.800">{value}</Text>
+              <Text fontSize="sm" color="gray.600">{label}</Text>
+            </CardBody>
+          </Card>
+        ))}
+      </SimpleGrid>
 
-      <div className="upcoming-section">
-        <h2>Ближайшие записи</h2>
-        <div className="bookings-list">
-          {upcomingBookings.map(
-            (booking: {
-              id: number;
-              time: string;
-              client: string;
-              phone: string;
-              car: string;
-              services: string;
-            }) => (
-              <div key={booking.id} className="booking-card">
-                <div className="booking-time">{booking.time}</div>
-                <div className="booking-details">
-                  <div className="booking-client">
-                    <strong>{booking.client}</strong>
-                    <span className="booking-phone">{booking.phone}</span>
-                  </div>
-                  <div className="booking-car">{booking.car}</div>
-                  <div className="booking-services">{booking.services}</div>
-                </div>
-              </div>
-            ),
-          )}
-        </div>
-      </div>
-    </div>
+      <Heading size="md" mb={4} color="gray.800">Ближайшие записи</Heading>
+      <VStack align="stretch" spacing={3}>
+        {upcomingBookings.map((booking) => (
+          <Card key={booking.id} bg={cardBg} borderWidth="1px" borderColor="gray.200">
+            <CardBody py={3} px={4}>
+              <Box display="flex" alignItems="center" gap={4} flexWrap="wrap">
+                <Text fontWeight="bold" minW="48px">{booking.time}</Text>
+                <Box flex={1}>
+                  <Text fontWeight="semibold">{booking.client}</Text>
+                  <Text fontSize="sm" color="gray.600">{booking.phone}</Text>
+                </Box>
+                <Text fontSize="sm" color="gray.600">{booking.car}</Text>
+                <Text fontSize="sm" color="gray.500">{booking.services}</Text>
+              </Box>
+            </CardBody>
+          </Card>
+        ))}
+      </VStack>
+    </Box>
   );
 };
 

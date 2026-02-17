@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import './Login.css';
 
 const Login = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [forbiddenMessage, setForbiddenMessage] = useState('');
   const { login } = useAuth();
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'forbidden') {
+      setForbiddenMessage('Недостаточно прав. У пользователя должна быть роль OWNER или ADMIN в базе данных.');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +55,7 @@ const Login = () => {
               required
             />
           </div>
+          {forbiddenMessage && <div className="error-message" role="alert">{forbiddenMessage}</div>}
           {error && <div className="error-message">{error}</div>}
           <button type="submit" className="login-btn">
             Войти
