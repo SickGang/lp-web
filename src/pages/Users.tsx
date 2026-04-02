@@ -12,12 +12,12 @@ import {
   Th,
   Td,
   Badge,
-  Button,
   TableContainer,
   HStack,
-  useColorModeValue,
+  Stack,
 } from '@chakra-ui/react';
 import { usersAPI } from '../services/api';
+import { Button } from '@/components/ui/button';
 
 interface User {
   id: number;
@@ -31,7 +31,6 @@ interface User {
 const Users = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const tableBg = useColorModeValue('white', 'gray.800');
 
   const { data: usersData, isLoading, isError } = useQuery({
     queryKey: ['users', roleFilter],
@@ -61,12 +60,16 @@ const Users = () => {
     }
   };
 
-  const getRoleColorScheme = (role: string) => {
+  const getRoleBadgeStyle = (role: string) => {
     switch (role) {
-      case 'CLIENT': return 'gray';
-      case 'ADMIN': return 'blue';
-      case 'OWNER': return 'blackAlpha';
-      default: return 'gray';
+      case 'CLIENT':
+        return { bg: 'lp.input', color: 'lp.textSecondary' };
+      case 'ADMIN':
+        return { bg: 'rgba(0, 136, 204, 0.2)', color: '#8bd9ff' };
+      case 'OWNER':
+        return { bg: 'rgba(255, 215, 0, 0.16)', color: '#ffe580' };
+      default:
+        return { bg: 'lp.input', color: 'lp.textSecondary' };
     }
   };
 
@@ -81,73 +84,75 @@ const Users = () => {
   return (
     <Box>
       <HStack justify="space-between" mb={6} wrap="wrap" gap={4}>
-        <Heading size="lg" color="gray.800">Управление пользователями</Heading>
-        <Button size="sm" colorScheme="gray" variant="outline" isDisabled title="В разработке">
+        <Heading size="lg" color="lp.textPrimary">Управление пользователями</Heading>
+        <Button size="sm" variant="outline" disabled title="В разработке">
           + Добавить администратора
         </Button>
       </HStack>
 
-      <HStack spacing={4} mb={6}>
+      <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={6}>
         <Input
           placeholder="Поиск по имени или телефону..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          maxW="320px"
-          bg="white"
-          borderColor="gray.300"
+          maxW={{ base: '100%', md: '320px' }}
         />
         <Select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          maxW="200px"
-          bg="white"
-          borderColor="gray.300"
+          maxW={{ base: '100%', md: '200px' }}
         >
           <option value="all">Все роли</option>
           <option value="CLIENT">Клиенты</option>
           <option value="ADMIN">Администраторы</option>
           <option value="OWNER">Владельцы</option>
         </Select>
-      </HStack>
+      </Stack>
 
       {isLoading ? (
         <Box py={8}>Загрузка...</Box>
       ) : isError ? (
-        <Box py={8} color="red.500">
+        <Box py={8} color="lp.error">
           Ошибка загрузки данных. Убедитесь, что API сервер запущен.
         </Box>
       ) : (
-        <TableContainer bg={tableBg} borderRadius="md" borderWidth="1px" borderColor="gray.200">
-          <Table size="sm">
-            <Thead bg="gray.50">
+        <TableContainer
+          bg="lp.surface"
+          borderRadius="16px"
+          borderWidth="1px"
+          borderColor="lp.border"
+          overflowX="auto"
+        >
+          <Table size="sm" minW="760px">
+            <Thead bg="lp.input">
               <Tr>
-                <Th>Имя</Th>
-                <Th>Телефон</Th>
-                <Th>Роль</Th>
-                <Th>Дата регистрации</Th>
-                <Th>Записей</Th>
-                <Th>Действия</Th>
+                <Th color="lp.textMuted">Имя</Th>
+                <Th color="lp.textMuted">Телефон</Th>
+                <Th color="lp.textMuted">Роль</Th>
+                <Th color="lp.textMuted">Дата регистрации</Th>
+                <Th color="lp.textMuted">Записей</Th>
+                <Th color="lp.textMuted">Действия</Th>
               </Tr>
             </Thead>
             <Tbody>
               {filteredUsers.map((user) => (
                 <Tr key={user.id}>
-                  <Td fontWeight="medium">{user.name}</Td>
-                  <Td>{user.phone}</Td>
+                  <Td fontWeight="medium" color="lp.textPrimary">{user.name}</Td>
+                  <Td color="lp.textSecondary">{user.phone}</Td>
                   <Td>
-                    <Badge colorScheme={getRoleColorScheme(user.role)}>
+                    <Badge {...getRoleBadgeStyle(user.role)}>
                       {getRoleLabel(user.role)}
                     </Badge>
                   </Td>
-                  <Td>{new Date(user.createdAt).toLocaleDateString('ru-RU')}</Td>
-                  <Td>{user.bookingsCount}</Td>
+                  <Td color="lp.textSecondary">{new Date(user.createdAt).toLocaleDateString('ru-RU')}</Td>
+                  <Td color="lp.textSecondary">{user.bookingsCount}</Td>
                   <Td>
                     {user.role !== 'OWNER' && (
                       <HStack spacing={2}>
-                        <Button size="xs" variant="outline" colorScheme="gray">
+                        <Button size="xs" variant="outline">
                           Изменить роль
                         </Button>
-                        <Button size="xs" variant="outline" colorScheme="red">
+                        <Button size="xs" variant="outline" className="border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10">
                           Удалить
                         </Button>
                       </HStack>

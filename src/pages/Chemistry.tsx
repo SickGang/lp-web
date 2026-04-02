@@ -5,7 +5,6 @@ import { ru } from "date-fns/locale";
 import {
   Box,
   Heading,
-  Button,
   Tabs,
   TabList,
   TabPanels,
@@ -23,7 +22,7 @@ import {
   TableContainer,
   HStack,
   VStack,
-  useColorModeValue,
+  Stack,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -40,6 +39,7 @@ import {
 } from "@chakra-ui/react";
 import { chemicalsAPI } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 interface Chemical {
   id: number;
@@ -75,7 +75,6 @@ const Chemistry = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const cardBg = useColorModeValue("white", "gray.800");
   const [activeTab, setActiveTab] = useState(0);
 
   const addModal = useDisclosure();
@@ -296,16 +295,16 @@ const Chemistry = () => {
   return (
     <Box>
       <HStack justify="space-between" mb={6} wrap="wrap" gap={4}>
-        <Heading size="lg" color="gray.800">
+        <Heading size="lg" color="lp.textPrimary">
           Учет химии
         </Heading>
-        <Button colorScheme="gray" variant="outline" onClick={addModal.onOpen}>
+        <Button variant="outline" onClick={addModal.onOpen}>
           + Добавить химию
         </Button>
       </HStack>
 
-      <Tabs index={activeTab} onChange={setActiveTab} colorScheme="gray">
-        <TabList borderColor="gray.200" mb={4}>
+      <Tabs index={activeTab} onChange={setActiveTab}>
+        <TabList borderColor="lp.border" mb={4} overflowX="auto" overflowY="hidden">
           <Tab>📦 Склад</Tab>
           <Tab>📊 История расхода</Tab>
         </TabList>
@@ -315,7 +314,7 @@ const Chemistry = () => {
             {chemicalsLoading ? (
               <Text>Загрузка...</Text>
             ) : chemicalsError ? (
-              <Text color="red.500">
+              <Text color="lp.error">
                 Ошибка загрузки данных. Убедитесь, что API сервер запущен.
               </Text>
             ) : (
@@ -328,17 +327,21 @@ const Chemistry = () => {
                       p={4}
                       borderRadius="md"
                       borderWidth="1px"
-                      borderColor={isLowStock ? "red.300" : "gray.200"}
-                      bg={cardBg}
+                      borderColor={isLowStock ? "lp.warning" : "lp.border"}
+                      bg="lp.surface"
                     >
                       <HStack justify="space-between" mb={2}>
                         <Heading size="sm">{chemical.name}</Heading>
-                        {isLowStock && <Badge colorScheme="red">⚠️ Мало</Badge>}
+                        {isLowStock && (
+                          <Badge bg="rgba(255, 215, 0, 0.16)" color="#ffe580">
+                            ⚠️ Мало
+                          </Badge>
+                        )}
                       </HStack>
-                      <Text fontSize="sm" color="gray.600">
+                      <Text fontSize="sm" color="lp.textSecondary">
                         {chemical.brand}
                       </Text>
-                      <Text fontSize="sm" color="gray.500">
+                      <Text fontSize="sm" color="lp.textMuted">
                         {getCategoryLabel(chemical.category)}
                       </Text>
                       <Box mt={3} fontSize="sm">
@@ -353,10 +356,9 @@ const Chemistry = () => {
                           ₽/{chemical.unit}
                         </Text>
                       </Box>
-                      <HStack mt={3} spacing={2}>
+                      <Stack mt={3} spacing={2} direction={{ base: "column", sm: "row" }}>
                         <Button
                           size="xs"
-                          colorScheme="gray"
                           variant="outline"
                           onClick={() => openUsage(chemical)}
                         >
@@ -365,12 +367,11 @@ const Chemistry = () => {
                         <Button
                           size="xs"
                           variant="ghost"
-                          colorScheme="gray"
                           onClick={() => openEdit(chemical)}
                         >
                           Изменить
                         </Button>
-                      </HStack>
+                      </Stack>
                     </Box>
                   );
                 })}
@@ -382,7 +383,7 @@ const Chemistry = () => {
             {usageLoading ? (
               <Text>Загрузка...</Text>
             ) : usageError ? (
-              <Text color="red.500">
+              <Text color="lp.error">
                 Ошибка загрузки данных. Убедитесь, что API сервер запущен.
               </Text>
             ) : (
@@ -390,12 +391,12 @@ const Chemistry = () => {
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}>
                   <Box
                     p={4}
-                    bg={cardBg}
+                    bg="lp.surface"
                     borderRadius="md"
                     borderWidth="1px"
-                    borderColor="gray.200"
+                    borderColor="lp.border"
                   >
-                    <Text fontSize="sm" color="gray.600">
+                    <Text fontSize="sm" color="lp.textSecondary">
                       Расход за месяц
                     </Text>
                     <Text fontSize="xl" fontWeight="bold">
@@ -407,12 +408,12 @@ const Chemistry = () => {
                   </Box>
                   <Box
                     p={4}
-                    bg={cardBg}
+                    bg="lp.surface"
                     borderRadius="md"
                     borderWidth="1px"
-                    borderColor="gray.200"
+                    borderColor="lp.border"
                   >
-                    <Text fontSize="sm" color="gray.600">
+                    <Text fontSize="sm" color="lp.textSecondary">
                       Записей расхода
                     </Text>
                     <Text fontSize="xl" fontWeight="bold">
@@ -422,13 +423,14 @@ const Chemistry = () => {
                 </SimpleGrid>
 
                 <TableContainer
-                  bg={cardBg}
+                  bg="lp.surface"
                   borderRadius="md"
                   borderWidth="1px"
-                  borderColor="gray.200"
+                  borderColor="lp.border"
+                  overflowX="auto"
                 >
-                  <Table size="sm">
-                    <Thead bg="gray.50">
+                  <Table size="sm" minW="760px">
+                    <Thead bg="lp.input">
                       <Tr>
                         <Th>Дата и время</Th>
                         <Th>Химия</Th>
@@ -467,9 +469,9 @@ const Chemistry = () => {
       </Tabs>
 
       {/* Модалка: Добавить химию */}
-      <Modal isOpen={addModal.isOpen} onClose={addModal.onClose} size="md">
+      <Modal isOpen={addModal.isOpen} onClose={addModal.onClose} size={{ base: "full", md: "md" }}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg="lp.surface" border="1px solid" borderColor="lp.border">
           <ModalHeader>Добавить химию</ModalHeader>
           <ModalCloseButton />
           <form onSubmit={handleAddSubmit}>
@@ -566,15 +568,12 @@ const Chemistry = () => {
               </VStack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={addModal.onClose}>
+              <Button variant="ghost" className="mr-3" onClick={addModal.onClose}>
                 Отмена
               </Button>
               <Button
                 type="submit"
-                colorScheme="gray"
-                bg="gray.800"
-                _hover={{ bg: "gray.700" }}
-                isLoading={createMutation.isPending}
+                disabled={createMutation.isPending}
               >
                 Добавить
               </Button>
@@ -590,10 +589,10 @@ const Chemistry = () => {
           editModal.onClose();
           setEditingChemical(null);
         }}
-        size="md"
+        size={{ base: "full", md: "md" }}
       >
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg="lp.surface" border="1px solid" borderColor="lp.border">
           <ModalHeader>Изменить: {editingChemical?.name}</ModalHeader>
           <ModalCloseButton />
           <form onSubmit={handleEditSubmit}>
@@ -684,15 +683,12 @@ const Chemistry = () => {
               </VStack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={editModal.onClose}>
+              <Button variant="ghost" className="mr-3" onClick={editModal.onClose}>
                 Отмена
               </Button>
               <Button
                 type="submit"
-                colorScheme="gray"
-                bg="gray.800"
-                _hover={{ bg: "gray.700" }}
-                isLoading={updateMutation.isPending}
+                disabled={updateMutation.isPending}
               >
                 Сохранить
               </Button>
@@ -708,17 +704,17 @@ const Chemistry = () => {
           usageModal.onClose();
           setUsageChemical(null);
         }}
-        size="md"
+        size={{ base: "full", md: "md" }}
       >
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg="lp.surface" border="1px solid" borderColor="lp.border">
           <ModalHeader>Записать расход: {usageChemical?.name}</ModalHeader>
           <ModalCloseButton />
           <form onSubmit={handleUsageSubmit}>
             <ModalBody>
               <VStack spacing={4} align="stretch">
                 {usageChemical && (
-                  <Text fontSize="sm" color="gray.600">
+                  <Text fontSize="sm" color="lp.textSecondary">
                     Остаток: {usageChemical.currentStock} {usageChemical.unit}
                   </Text>
                 )}
@@ -750,15 +746,12 @@ const Chemistry = () => {
               </VStack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={usageModal.onClose}>
+              <Button variant="ghost" className="mr-3" onClick={usageModal.onClose}>
                 Отмена
               </Button>
               <Button
                 type="submit"
-                colorScheme="gray"
-                bg="gray.800"
-                _hover={{ bg: "gray.700" }}
-                isLoading={recordUsageMutation.isPending}
+                disabled={recordUsageMutation.isPending}
               >
                 Записать
               </Button>

@@ -1,19 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import {
-  Box,
-  Heading,
-  Text,
-  Button,
-  SimpleGrid,
-  useColorModeValue,
-} from '@chakra-ui/react';
 import { adminAPI } from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface TimeSlot {
-  time: string;
+  startTime: string;
+  endTime: string;
   booking?: {
     id: number;
     client: string;
@@ -23,11 +20,36 @@ interface TimeSlot {
   };
 }
 
+const SLOTS_2H: Array<{ startTime: string; endTime: string }> = [
+  { startTime: '09:00', endTime: '11:00' },
+  { startTime: '11:00', endTime: '13:00' },
+  { startTime: '13:00', endTime: '15:00' },
+  { startTime: '15:00', endTime: '17:00' },
+  { startTime: '17:00', endTime: '19:00' },
+  { startTime: '19:00', endTime: '21:00' },
+];
+
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+};
+
+const intervalsOverlap = (
+  start1: string,
+  end1: string,
+  start2: string,
+  end2: string,
+): boolean => {
+  const s1 = timeToMinutes(start1);
+  const e1 = timeToMinutes(end1);
+  const s2 = timeToMinutes(start2);
+  const e2 = timeToMinutes(end2);
+  return s1 < e2 && e1 > s2;
+};
+
 const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const freeBorder = useColorModeValue('gray.200', 'gray.600');
-  const bookedBorder = useColorModeValue('gray.400', 'gray.500');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const { data: bookingsData, isLoading, isError } = useQuery({
     queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
@@ -39,114 +61,113 @@ const Bookings = () => {
   });
 
   const generateTimeSlots = (): TimeSlot[] => {
-    const slots: TimeSlot[] = [];
-    const times = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00'];
     const raw = bookingsData;
     const bookings = Array.isArray(raw)
       ? raw
       : (raw as { data?: any[] })?.data ?? (raw as { bookings?: any[] })?.bookings ?? [];
 
     const getTimeUtc = (isoString: string) => new Date(isoString).toISOString().slice(11, 16);
-
-    times.forEach((time) => {
+    return SLOTS_2H.map((slot) => {
       const booking = bookings.find((b: any) => {
-        if (!b?.startTime) return false;
-        const bookingTime = getTimeUtc(b.startTime);
-        return bookingTime === time;
+        if (!b?.startTime || !b?.endTime) return false;
+        const bookingStart = getTimeUtc(b.startTime);
+        const bookingEnd = getTimeUtc(b.endTime);
+        return intervalsOverlap(slot.startTime, slot.endTime, bookingStart, bookingEnd);
       });
 
-      if (booking) {
-        const user = booking.user ?? {};
-        const services = (booking.services ?? booking.selectedServices ?? [])
-          .map((s: any) => s?.service?.name ?? s?.name)
-          .filter(Boolean)
-          .join(', ');
-        slots.push({
-          time,
-          booking: {
-            id: booking.id,
-            client: user.name || user.firstName || user.phone || '—',
-            car: booking.car
-              ? `${booking.car.brand} ${booking.car.model}`
-              : 'Не указан',
-            services: services || '—',
-            phone: user.phone || '—',
-          },
-        });
-      } else {
-        slots.push({ time });
+      if (!booking) {
+        return { startTime: slot.startTime, endTime: slot.endTime };
       }
+
+      const user = booking.user ?? {};
+      const services = (booking.services ?? booking.selectedServices ?? [])
+        .map((s: any) => s?.service?.name ?? s?.name)
+        .filter(Boolean)
+        .join(', ');
+
+      return {
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        booking: {
+          id: booking.id,
+          client: user.name || user.firstName || user.phone || '—',
+          car: booking.car
+            ? `${booking.car.brand} ${booking.car.model}`
+            : 'Не указан',
+          services: services || '—',
+          phone: user.phone || '—',
+        },
+      };
     });
-    return slots;
   };
 
   const timeSlots = isLoading ? [] : generateTimeSlots();
-  const dates = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
 
   return (
-    <Box>
-      <Heading size="lg" mb={6} color="gray.800">Записи на мойку</Heading>
+    <div>
+      <h1 className="mb-6 text-4xl font-bold text-white">Записи на мойку</h1>
 
-      <SimpleGrid columns={{ base: 4, md: 7 }} spacing={3} mb={8}>
-        {dates.map((date) => {
-          const isSelected =
-            format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-          return (
-            <Button
-              key={date.toISOString()}
-              variant={isSelected ? 'solid' : 'outline'}
-              colorScheme="gray"
-              size="sm"
-              py={4}
-              flexDirection="column"
-              onClick={() => setSelectedDate(date)}
-            >
-              <Text fontSize="xs">{format(date, 'EEE', { locale: ru })}</Text>
-              <Text fontWeight="bold">{format(date, 'd')}</Text>
-              <Text fontSize="xs">{format(date, 'MMM', { locale: ru })}</Text>
-            </Button>
-          );
-        })}
-      </SimpleGrid>
+      <Card className="mb-8 w-fit border-[#3A3A3C] bg-[#2C2C2E]">
+        <CardContent className="p-2">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            onSelect={(date) => {
+              if (date) {
+                setSelectedDate(date);
+                setCalendarMonth(date);
+              }
+            }}
+            className="rounded-md"
+          />
+        </CardContent>
+      </Card>
 
-      <Heading size="md" mb={4} color="gray.700">
+      <h2 className="mb-4 text-3xl font-semibold text-white">
         Слоты на {format(selectedDate, 'd MMMM', { locale: ru })}
-      </Heading>
+      </h2>
 
       {isLoading ? (
-        <Text>Загрузка...</Text>
+        <p className="text-[#CCCCCC]">Загрузка...</p>
       ) : isError ? (
-        <Text color="red.500">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</Text>
+        <p className="text-[#FF3B30]">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
       ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {timeSlots.map((slot) => (
-            <Box
-              key={slot.time}
-              p={4}
-              borderRadius="md"
-              borderWidth="1px"
-              borderColor={slot.booking ? bookedBorder : freeBorder}
-              bg={cardBg}
-            >
-              <Text fontWeight="bold" mb={3}>{slot.time}</Text>
-              {slot.booking ? (
-                <Box fontSize="sm">
-                  <Text fontWeight="semibold">{slot.booking.client}</Text>
-                  <Text color="gray.600">{slot.booking.phone}</Text>
-                  <Text color="gray.600">{slot.booking.car}</Text>
-                  <Text color="gray.500" mb={2}>{slot.booking.services}</Text>
-                  <Button size="xs" colorScheme="red" variant="outline">
-                    Отменить
-                  </Button>
-                </Box>
-              ) : (
-                <Text color="gray.500">Свободно</Text>
+            <Card
+              key={slot.startTime}
+              className={cn(
+                'rounded-2xl border bg-[#2C2C2E]',
+                slot.booking ? 'border-[#8E8E93]' : 'border-[#3A3A3C]'
               )}
-            </Box>
+            >
+              <CardContent className="p-4">
+                <p className="mb-3 text-xl font-bold text-white">{slot.startTime} - {slot.endTime}</p>
+                {slot.booking ? (
+                  <div className="text-sm">
+                    <p className="font-semibold text-white">{slot.booking.client}</p>
+                    <p className="text-[#CCCCCC]">{slot.booking.phone}</p>
+                    <p className="text-[#CCCCCC]">{slot.booking.car}</p>
+                    <p className="mb-2 text-[#8E8E93]">{slot.booking.services}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                    >
+                      Отменить
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[#4CAF50]">Свободно</p>
+                )}
+              </CardContent>
+            </Card>
           ))}
-        </SimpleGrid>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

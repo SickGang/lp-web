@@ -9,7 +9,7 @@ import {
   Card,
   CardBody,
   VStack,
-  useColorModeValue,
+  Stack,
 } from '@chakra-ui/react';
 import { adminAPI } from '../services/api';
 
@@ -24,7 +24,6 @@ interface ApiBooking {
 }
 
 const Dashboard = () => {
-  const cardBg = useColorModeValue('white', 'gray.800');
   const {
     data: stats,
     isLoading: statsLoading,
@@ -85,7 +84,7 @@ const Dashboard = () => {
     return (
       <Box>
         <Heading size="lg" mb={2}>Ошибка загрузки данных</Heading>
-        <Text color="gray.600">Убедитесь, что API сервер запущен.</Text>
+        <Text color="lp.textSecondary">Убедитесь, что API сервер запущен.</Text>
       </Box>
     );
   }
@@ -103,37 +102,37 @@ const Dashboard = () => {
 
   return (
     <Box>
-      <Heading size="lg" mb={1} color="gray.800">Дашборд</Heading>
-      <Text color="gray.600" fontSize="sm" mb={6}>
+      <Heading size="lg" mb={1} color="lp.textPrimary">Дашборд</Heading>
+      <Text color="lp.textSecondary" fontSize="sm" mb={6}>
         {format(new Date(), 'd MMMM yyyy, EEEE', { locale: ru })}
       </Text>
 
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={8}>
         {statCards.map(({ label, value, icon }) => (
-          <Card key={label} bg={cardBg} borderWidth="1px" borderColor="gray.200">
+          <Card key={label}>
             <CardBody>
               <Text fontSize="2xl" mb={1}>{icon}</Text>
-              <Text fontSize="2xl" fontWeight="bold" color="gray.800">{value}</Text>
-              <Text fontSize="sm" color="gray.600">{label}</Text>
+              <Text fontSize="2xl" fontWeight="bold" color="lp.textPrimary">{value}</Text>
+              <Text fontSize="sm" color="lp.textSecondary">{label}</Text>
             </CardBody>
           </Card>
         ))}
       </SimpleGrid>
 
-      <Heading size="md" mb={4} color="gray.800">Ближайшие записи</Heading>
+      <Heading size="md" mb={4} color="lp.textPrimary">Ближайшие записи</Heading>
       <VStack align="stretch" spacing={3}>
         {upcomingBookings.map((booking) => (
-          <Card key={booking.id} bg={cardBg} borderWidth="1px" borderColor="gray.200">
+          <Card key={booking.id}>
             <CardBody py={3} px={4}>
-              <Box display="flex" alignItems="center" gap={4} flexWrap="wrap">
+              <Stack direction={{ base: 'column', md: 'row' }} align={{ base: 'flex-start', md: 'center' }} gap={4}>
                 <Text fontWeight="bold" minW="48px">{booking.time}</Text>
                 <Box flex={1}>
                   <Text fontWeight="semibold">{booking.client}</Text>
-                  <Text fontSize="sm" color="gray.600">{booking.phone}</Text>
+                  <Text fontSize="sm" color="lp.textSecondary">{booking.phone}</Text>
                 </Box>
-                <Text fontSize="sm" color="gray.600">{booking.car}</Text>
-                <Text fontSize="sm" color="gray.500">{booking.services}</Text>
-              </Box>
+                <Text fontSize="sm" color="lp.textSecondary">{booking.car}</Text>
+                <Text fontSize="sm" color="lp.textMuted">{booking.services}</Text>
+              </Stack>
             </CardBody>
           </Card>
         ))}

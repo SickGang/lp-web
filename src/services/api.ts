@@ -100,4 +100,23 @@ export const bookingsAPI = {
   cancel: (id: number) => api.patch(`/bookings/${id}/cancel`),
 };
 
+// Services API
+export const servicesAPI = {
+  getAll: (includeInactive = true) =>
+    api.get("/services", { params: { includeInactive } }),
+  getCategories: () => api.get("/services/categories"),
+  createCategory: (name: string) => api.post("/services/categories", { name }),
+  deleteCategory: (id: number) => api.delete(`/services/categories/${id}`),
+  create: (data: {
+    name: string;
+    description?: string;
+    price: number;
+    duration: number;
+    category: string;
+    isActive?: boolean;
+  }) => api.post("/services", data),
+  update: (id: number, data: any) => api.patch(`/services/${id}`, data),
+  delete: (id: number) => api.delete(`/services/${id}`),
+};
+
 export default api;

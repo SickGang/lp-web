@@ -7,38 +7,114 @@ const config: ThemeConfig = {
 
 const theme = extendTheme({
   config,
+  fonts: {
+    heading: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    body: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
   colors: {
-    brand: {
-      50: '#f7f7f7',
-      100: '#e3e3e3',
-      200: '#c7c7c7',
-      300: '#a3a3a3',
-      400: '#818181',
-      500: '#666666',
-      600: '#515151',
-      700: '#434343',
-      800: '#262626',
-      900: '#171717',
-      950: '#0a0a0a',
+    lp: {
+      bg: '#17181C',
+      surface: '#2C2C2E',
+      input: '#27292D',
+      border: '#3A3A3C',
+      textPrimary: '#FFFFFF',
+      textSecondary: '#CCCCCC',
+      textMuted: '#8E8E93',
+      whiteButton: '#FFFFFF',
+      blackText: '#000000',
+      accent: '#0088CC',
+      error: '#FF3B30',
+      warning: '#FFD700',
+      success: '#4CAF50',
     },
   },
   styles: {
     global: {
       body: {
-        bg: 'gray.50',
-        color: 'gray.900',
+        bg: 'lp.bg',
+        color: 'lp.textPrimary',
       },
     },
   },
   components: {
     Button: {
-      defaultProps: {
-        colorScheme: 'gray',
+      baseStyle: {
+        borderRadius: '12px',
+        fontWeight: 600,
+      },
+      variants: {
+        solid: {
+          bg: 'lp.whiteButton',
+          color: 'lp.blackText',
+          _hover: {
+            bg: '#ECECEC',
+          },
+        },
+        outline: {
+          bg: 'transparent',
+          borderColor: 'lp.border',
+          color: 'lp.textPrimary',
+          _hover: {
+            bg: 'lp.input',
+            borderColor: 'lp.textMuted',
+          },
+        },
+        ghost: {
+          color: 'lp.textSecondary',
+          _hover: {
+            bg: 'lp.input',
+            color: 'lp.textPrimary',
+          },
+        },
       },
     },
     Input: {
-      defaultProps: {
-        focusBorderColor: 'gray.700',
+      variants: {
+        outline: {
+          field: {
+            bg: 'lp.input',
+            borderColor: 'lp.border',
+            color: 'lp.textPrimary',
+            _placeholder: {
+              color: 'lp.textMuted',
+            },
+            _hover: {
+              borderColor: 'lp.textMuted',
+            },
+            _focusVisible: {
+              borderColor: 'lp.textSecondary',
+              boxShadow: 'none',
+            },
+          },
+        },
+      },
+    },
+    Select: {
+      variants: {
+        outline: {
+          field: {
+            bg: 'lp.input',
+            borderColor: 'lp.border',
+            color: 'lp.textPrimary',
+            _hover: {
+              borderColor: 'lp.textMuted',
+            },
+            _focusVisible: {
+              borderColor: 'lp.textSecondary',
+              boxShadow: 'none',
+            },
+          },
+        },
+      },
+    },
+    Card: {
+      baseStyle: {
+        container: {
+          bg: 'lp.surface',
+          borderRadius: '16px',
+          borderWidth: '1px',
+          borderColor: 'lp.border',
+        },
       },
     },
   },
