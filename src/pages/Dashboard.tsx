@@ -125,9 +125,16 @@ const Dashboard = () => {
           <Card key={booking.id}>
             <CardBody py={3} px={4}>
               <Stack direction={{ base: 'column', md: 'row' }} align={{ base: 'flex-start', md: 'center' }} gap={4}>
-                <Text fontWeight="bold" minW="48px">{booking.time}</Text>
+                <Text
+                  fontWeight="bold"
+                  minW="48px"
+                  color="lp.textPrimary"
+                  fontSize="lg"
+                >
+                  {booking.time}
+                </Text>
                 <Box flex={1}>
-                  <Text fontWeight="semibold">{booking.client}</Text>
+                  <Text fontWeight="semibold" color="lp.textPrimary">{booking.client}</Text>
                   <Text fontSize="sm" color="lp.textSecondary">{booking.phone}</Text>
                 </Box>
                 <Text fontSize="sm" color="lp.textSecondary">{booking.car}</Text>

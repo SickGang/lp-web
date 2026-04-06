@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { adminAPI } from '../services/api';
+import { adminAPI, bookingsAPI } from '../services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -50,6 +50,7 @@ const intervalsOverlap = (
 const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const queryClient = useQueryClient();
 
   const { data: bookingsData, isLoading, isError } = useQuery({
     queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
@@ -103,6 +104,27 @@ const Bookings = () => {
 
   const timeSlots = isLoading ? [] : generateTimeSlots();
 
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (id: number) => bookingsAPI.cancel(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
+      });
+    },
+  });
+
+  const handleCancelBooking = async (bookingId: number) => {
+    const isConfirmed = window.confirm('Отменить это бронирование?');
+    if (!isConfirmed) return;
+
+    try {
+      await cancelBookingMutation.mutateAsync(bookingId);
+    } catch (error) {
+      console.error('Failed to cancel booking:', error);
+      window.alert('Не удалось отменить бронирование. Попробуйте снова.');
+    }
+  };
+
   return (
     <div>
       <h1 className="mb-6 text-4xl font-bold text-white">Записи на мойку</h1>
@@ -155,8 +177,10 @@ const Bookings = () => {
                       size="sm"
                       variant="outline"
                       className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                      onClick={() => handleCancelBooking(slot.booking!.id)}
+                      disabled={cancelBookingMutation.isPending}
                     >
-                      Отменить
+                      {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
                     </Button>
                   </div>
                 ) : (

@@ -1,9 +1,9 @@
 {
-  "name": "carwash-admin-panel",
+  "name": "lp-web",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Admin panel for Carwash Management System",
+  "description": "LP Detailing",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
