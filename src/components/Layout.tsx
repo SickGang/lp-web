@@ -29,20 +29,20 @@ const Layout = () => {
   };
 
   const navLinks = [
-    { to: "/dashboard", label: "Дашборд", icon: "📊" },
-    { to: "/bookings", label: "Записи на мойку", icon: "📅" },
+    { to: "/dashboard", label: "Дашборд" },
+    { to: "/bookings", label: "Записи на мойку" },
     ...(user?.role === "OWNER"
       ? [
-          { to: "/users", label: "Пользователи", icon: "👥" },
-          { to: "/services", label: "Услуги", icon: "🧰" },
+          { to: "/users", label: "Пользователи" },
+          { to: "/services", label: "Услуги" },
         ]
       : []),
-    { to: "/chemistry", label: "Учет химии", icon: "🧪" },
+    { to: "/chemistry", label: "Учет химии" },
   ];
 
   const nav = (
     <VStack align="stretch" spacing={1} as="nav">
-      {navLinks.map(({ to, label, icon }) => (
+      {navLinks.map(({ to, label }) => (
         <NavLink key={to} to={to} onClick={menu.onClose}>
           {({ isActive }) => (
             <Box
@@ -56,7 +56,7 @@ const Layout = () => {
               color={isActive ? "lp.textPrimary" : "lp.textSecondary"}
               fontSize="sm"
             >
-              {icon} {label}
+              {label}
             </Box>
           )}
         </NavLink>
@@ -111,7 +111,7 @@ const Layout = () => {
                 variant="outline"
                 onClick={handleLogout}
               >
-                🚪 Выйти
+                Выйти
               </Button>
             </DrawerBody>
           </DrawerContent>
@@ -150,7 +150,7 @@ const Layout = () => {
           className="border-[#3A3A3C] text-[#CCCCCC] hover:bg-[#27292D] hover:text-white"
           onClick={handleLogout}
         >
-          🚪 Выйти
+          Выйти
         </Button>
       </Box>
       </Hide>

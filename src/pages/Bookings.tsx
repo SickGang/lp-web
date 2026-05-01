@@ -13,10 +13,12 @@ interface TimeSlot {
   endTime: string;
   booking?: {
     id: number;
+    status: string;
     client: string;
     car: string;
     services: string;
     phone: string;
+    notes?: string;
   };
 }
 
@@ -51,7 +53,7 @@ const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const queryClient = useQueryClient();
-
+  
   const { data: bookingsData, isLoading, isError } = useQuery({
     queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
@@ -91,12 +93,14 @@ const Bookings = () => {
         endTime: slot.endTime,
         booking: {
           id: booking.id,
+          status: booking.status || "pending",
           client: user.name || user.firstName || user.phone || '—',
           car: booking.car
             ? `${booking.car.brand} ${booking.car.model}`
             : 'Не указан',
           services: services || '—',
           phone: user.phone || '—',
+          notes: typeof booking.notes === 'string' ? booking.notes.trim() : '',
         },
       };
     });
@@ -106,6 +110,15 @@ const Bookings = () => {
 
   const cancelBookingMutation = useMutation({
     mutationFn: async (id: number) => bookingsAPI.cancel(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
+      });
+    },
+  });
+
+  const confirmBookingMutation = useMutation({
+    mutationFn: async (id: number) => bookingsAPI.updateStatus(id, "confirmed"),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
@@ -173,6 +186,22 @@ const Bookings = () => {
                     <p className="text-[#CCCCCC]">{slot.booking.phone}</p>
                     <p className="text-[#CCCCCC]">{slot.booking.car}</p>
                     <p className="mb-2 text-[#8E8E93]">{slot.booking.services}</p>
+                    {slot.booking.notes && (
+                      <p className="mb-2 text-[#B0B0B0]">Комментарий: {slot.booking.notes}</p>
+                    )}
+                    <p className="mb-2 text-[#CCCCCC]">
+                      Статус: {slot.booking.status === "confirmed" ? "Подтверждено" : slot.booking.status === "pending" ? "В ожидании" : slot.booking.status}
+                    </p>
+                    {slot.booking.status === "pending" && (
+                      <Button
+                        size="sm"
+                        className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                        onClick={() => confirmBookingMutation.mutate(slot.booking!.id)}
+                        disabled={confirmBookingMutation.isPending}
+                      >
+                        {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

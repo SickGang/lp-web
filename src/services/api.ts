@@ -97,6 +97,8 @@ export const bookingsAPI = {
   getAll: () => api.get("/bookings"),
   getOne: (id: number) => api.get(`/bookings/${id}`),
   create: (data: any) => api.post("/bookings", data),
+  updateStatus: (id: number, status: "pending" | "confirmed" | "completed" | "cancelled") =>
+    api.patch(`/bookings/${id}`, { status }),
   cancel: (id: number) => api.patch(`/bookings/${id}/cancel`),
 };
 

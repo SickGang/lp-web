@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
   Box,
+  Button,
   Heading,
   Text,
   SimpleGrid,
@@ -11,19 +12,22 @@ import {
   VStack,
   Stack,
 } from '@chakra-ui/react';
-import { adminAPI } from '../services/api';
+import { adminAPI, bookingsAPI } from '../services/api';
 
 interface ApiBooking {
   id: number;
   startTime: string;
   endTime: string;
   status: string;
+  notes?: string | null;
+  carDisplay?: string | null;
   user: { name?: string; phone?: string };
   car?: { brand: string; model: string };
-  services?: Array<{ service?: { name?: string } }>;
+  selectedServices?: Array<{ service?: { name?: string } }>;
 }
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const {
     data: stats,
     isLoading: statsLoading,
@@ -44,10 +48,26 @@ const Dashboard = () => {
   } = useQuery({
     queryKey: ['upcoming-bookings'],
     queryFn: async () => {
-      const response = await adminAPI.getUpcomingBookings(10);
+      const response = await adminAPI.getUpcomingBookings();
       return response.data;
     },
     retry: 1,
+  });
+
+  const confirmBookingMutation = useMutation({
+    mutationFn: async (id: number) => bookingsAPI.updateStatus(id, 'confirmed'),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['upcoming-bookings'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (id: number) => bookingsAPI.cancel(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['upcoming-bookings'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
   });
 
   const rawBookings = Array.isArray(bookingsData)
@@ -60,16 +80,20 @@ const Dashboard = () => {
   };
   const upcomingBookings = rawBookings.map((booking: ApiBooking) => ({
     id: booking.id,
+    status: booking.status,
     time: formatTimeUtc(booking.startTime),
     client: booking.user?.name || booking.user?.phone || '—',
     phone: booking.user?.phone || '—',
-    car: booking.car
+    car: booking.carDisplay
+      ? booking.carDisplay
+      : booking.car
       ? `${booking.car.brand} ${booking.car.model}`
       : 'Не указан',
-    services: (booking.services ?? [])
+    services: (booking.selectedServices ?? [])
       .map((s) => s?.service?.name)
       .filter(Boolean)
       .join(', ') || '—',
+    notes: booking.notes?.trim() || '',
   }));
 
   if (statsLoading || bookingsLoading) {
@@ -119,7 +143,7 @@ const Dashboard = () => {
         ))}
       </SimpleGrid>
 
-      <Heading size="md" mb={4} color="lp.textPrimary">Ближайшие записи</Heading>
+      <Heading size="md" mb={4} color="lp.textPrimary">Ближайшие активные записи</Heading>
       <VStack align="stretch" spacing={3}>
         {upcomingBookings.map((booking) => (
           <Card key={booking.id}>
@@ -136,9 +160,38 @@ const Dashboard = () => {
                 <Box flex={1}>
                   <Text fontWeight="semibold" color="lp.textPrimary">{booking.client}</Text>
                   <Text fontSize="sm" color="lp.textSecondary">{booking.phone}</Text>
+                  <Text mt={1} fontSize="sm" color="lp.textSecondary">{booking.car}</Text>
+                  <Text mt={1} fontSize="sm" color="lp.textMuted">Услуги: {booking.services}</Text>
+                  <Text mt={1} fontSize="sm" color="lp.textSecondary">
+                    Статус: {booking.status === 'pending' ? 'В ожидании' : booking.status === 'confirmed' ? 'Подтверждено' : booking.status}
+                  </Text>
+                  {booking.notes && (
+                    <Text mt={1} fontSize="sm" color="lp.textMuted">
+                      Комментарий: {booking.notes}
+                    </Text>
+                  )}
                 </Box>
-                <Text fontSize="sm" color="lp.textSecondary">{booking.car}</Text>
-                <Text fontSize="sm" color="lp.textMuted">{booking.services}</Text>
+                {booking.status === 'pending' && (
+                  <Stack direction={{ base: 'column', md: 'row' }} spacing={2}>
+                    <Button
+                      size="sm"
+                      className="w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                      onClick={() => confirmBookingMutation.mutate(booking.id)}
+                      isLoading={confirmBookingMutation.isPending}
+                    >
+                      {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                      onClick={() => cancelBookingMutation.mutate(booking.id)}
+                      isLoading={cancelBookingMutation.isPending}
+                    >
+                      {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
+                    </Button>
+                  </Stack>
+                )}
               </Stack>
             </CardBody>
           </Card>
