@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+    content="LP Detailing — поддержка пользователей: телефон, Telegram, вопросы по приложению." />
+  <title>LP Detailing — поддержка и контакты</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --text: #e8eef4;
+      --muted: #9fb0c3;
+      --accent: #5b9fd4;
+      --accent-hover: #7ab8e8;
+      --border: #2d3a4d;
+      --focus: #ffd166;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f6f9;
+        --surface: #ffffff;
+        --text: #1a2332;
+        --muted: #5c6b7a;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --border: #dbe2ea;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu,
+        "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .skip {
+      position: absolute;
+      left: -9999px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+
+    .skip:focus {
+      position: fixed;
+      left: 1rem;
+      top: 1rem;
+      width: auto;
+      height: auto;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: 2px solid var(--focus);
+      z-index: 100;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .wrap {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    main {
+      padding-top: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.75rem 0 0.75rem;
+      padding-top: 0.25rem;
+    }
+
+    h2:first-of-type {
+      margin-top: 0;
+    }
+
+    p {
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      margin: 1rem 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+    }
+
+    a:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .en {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .en h2 {
+      color: var(--text);
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip" href="#main">Перейти к содержимому</a>
+  <header>
+    <div class="wrap">
+      <h1>LP Detailing — поддержка</h1>
+      <p class="subtitle">
+        Свяжитесь с нами по вопросам приложения, записи и сервиса.
+      </p>
+    </div>
+  </header>
+  <div class="wrap">
+    <main id="main">
+      <h2 id="contacts-heading">Как с нами связаться</h2>
+      <div class="card" role="region" aria-labelledby="contacts-heading">
+        <ul>
+          <li>
+            <strong>Телефон:</strong>
+            <a href="tel:+79297776666">+7&nbsp;(929)&nbsp;777-66-66</a>
+          </li>
+          <li>
+            <strong>Telegram:</strong>
+            <a href="https://t.me/LP_detailing7" rel="noopener noreferrer" target="_blank">@LP_detailing7</a>
+            (откроется в Telegram)
+          </li>
+        </ul>
+        <p style="margin-bottom: 0">
+          Эти же контакты указаны в разделе «Поддержка» внутри приложения.
+        </p>
+      </div>
+
+      <h2>Время ответа</h2>
+      <p>
+        Сообщения в Telegram и звонки мы обрабатываем в порядке очереди;
+        обычно отвечаем в течение одного рабочего дня. Срочные вопросы по
+        записи удобнее решать по телефону.
+      </p>
+
+      <h2>Вопросы по приложению (App Store)</h2>
+      <p>
+        Если приложение не работает как ожидается, опишите проблему в
+        Telegram или позвоните — укажите модель телефона и версию iOS. Это
+        поможет быстрее разобраться.
+      </p>
+
+      <section class="en" lang="en" aria-labelledby="en-heading">
+        <h2 id="en-heading">English</h2>
+        <p>
+          <strong>LP Detailing — customer support.</strong> For questions or
+          issues with the app, contact us by phone or Telegram (links above).
+          We aim to respond within one business day.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+
+</html>
