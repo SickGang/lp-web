@@ -4,6 +4,11 @@ import { useAuth } from "../hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  formatRuPhoneDisplay,
+  isRuPhoneComplete,
+  ruPhoneToE164,
+} from "@/lib/ruPhoneMask";
 
 const Login = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,8 +31,13 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
+    if (!isRuPhoneComplete(phone)) {
+      setError("Введите полный номер телефона");
+      return;
+    }
+
     try {
-      await login(phone, password);
+      await login(ruPhoneToE164(phone), password);
     } catch (err) {
       setError("Неверный номер телефона или пароль");
     }
@@ -50,10 +60,13 @@ const Login = () => {
               </label>
               <Input
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatRuPhoneDisplay(e.target.value))}
                 placeholder="+7 (999) 999-99-99"
                 required
+                maxLength={18}
                 className="bg-[#27292D] border-[#3A3A3C]"
               />
             </div>

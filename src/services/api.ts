@@ -55,6 +55,20 @@ export const adminAPI = {
     api.get("/admin/upcoming-bookings", { params: { limit } }),
   getBookingsByDate: (date: string) =>
     api.get("/admin/bookings-by-date", { params: { date } }),
+  lookupClient: (phone: string) =>
+    api.get("/admin/clients/lookup", { params: { phone } }),
+  createBooking: (data: {
+    phone: string;
+    clientName?: string;
+    serviceIds: number[];
+    date: string;
+    slotStart: string;
+    carId?: number;
+    carBrand?: string;
+    carModel?: string;
+    notes?: string;
+    confirmImmediately?: boolean;
+  }) => api.post("/admin/bookings", data),
 };
 
 // Users API

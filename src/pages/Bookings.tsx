@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { adminAPI, bookingsAPI } from '../services/api';
+import AdminCreateBookingModal from '@/components/AdminCreateBookingModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -52,12 +53,14 @@ const intervalsOverlap = (
 const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [createSlot, setCreateSlot] = useState<{ startTime: string; endTime: string } | null>(null);
   const queryClient = useQueryClient();
+  const dateKey = format(selectedDate, 'yyyy-MM-dd');
   
   const { data: bookingsData, isLoading, isError } = useQuery({
-    queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
+    queryKey: ['bookings-by-date', dateKey],
     queryFn: async () => {
-      const response = await adminAPI.getBookingsByDate(format(selectedDate, 'yyyy-MM-dd'));
+      const response = await adminAPI.getBookingsByDate(dateKey);
       return response.data;
     },
     retry: 1,
@@ -112,7 +115,7 @@ const Bookings = () => {
     mutationFn: async (id: number) => bookingsAPI.cancel(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
+        queryKey: ['bookings-by-date', dateKey],
       });
     },
   });
@@ -121,10 +124,14 @@ const Bookings = () => {
     mutationFn: async (id: number) => bookingsAPI.updateStatus(id, "confirmed"),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ['bookings-by-date', format(selectedDate, 'yyyy-MM-dd')],
+        queryKey: ['bookings-by-date', dateKey],
       });
     },
   });
+
+  const invalidateBookings = () => {
+    queryClient.invalidateQueries({ queryKey: ['bookings-by-date', dateKey] });
+  };
 
   const handleCancelBooking = async (bookingId: number) => {
     const isConfirmed = window.confirm('Отменить это бронирование?');
@@ -173,9 +180,22 @@ const Bookings = () => {
           {timeSlots.map((slot) => (
             <Card
               key={slot.startTime}
+              role={!slot.booking ? 'button' : undefined}
+              tabIndex={!slot.booking ? 0 : undefined}
+              onClick={() => {
+                if (!slot.booking) {
+                  setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (!slot.booking && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
+                }
+              }}
               className={cn(
                 'rounded-2xl border bg-[#2C2C2E]',
-                slot.booking ? 'border-[#8E8E93]' : 'border-[#3A3A3C]'
+                slot.booking ? 'border-[#8E8E93]' : 'cursor-pointer border-[#3A3A3C] hover:border-[#D9E57F]/50',
               )}
             >
               <CardContent className="p-4">
@@ -213,12 +233,25 @@ const Bookings = () => {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-[#4CAF50]">Свободно</p>
+                  <>
+                    <p className="text-[#4CAF50]">Свободно</p>
+                    <p className="mt-2 text-sm text-[#8E8E93]">Нажмите, чтобы записать</p>
+                  </>
                 )}
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {createSlot && (
+        <AdminCreateBookingModal
+          date={dateKey}
+          slotStart={createSlot.startTime}
+          slotEnd={createSlot.endTime}
+          onClose={() => setCreateSlot(null)}
+          onSuccess={invalidateBookings}
+        />
       )}
     </div>
   );
