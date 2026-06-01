@@ -27,16 +27,31 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// При 403 (Forbidden) — недостаточно прав: выходим и перенаправляем на логин
+function isAuthRequest(config: { url?: string } | undefined): boolean {
+  const url = config?.url ?? "";
+  return url.includes("/auth/");
+}
+
+function clearSessionAndNotify(reason: "unauthorized" | "forbidden") {
+  if (reason === "forbidden") {
+    sessionStorage.setItem("auth-logout-reason", "forbidden");
+  } else {
+    sessionStorage.removeItem("auth-logout-reason");
+  }
+  localStorage.removeItem("auth-storage");
+  window.dispatchEvent(new Event("lp-auth-session-expired"));
+}
+
+// 401/403 — сброс сессии и экран логина (кроме запросов /auth/*)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 403) {
-      localStorage.removeItem("auth-storage");
-      const loginPath = window.location.pathname.includes("/login") ? "" : "/login";
-      if (loginPath) {
-        window.location.href = loginPath + "?reason=forbidden";
-      }
+    const status = error.response?.status;
+    if (
+      !isAuthRequest(error.config) &&
+      (status === 401 || status === 403)
+    ) {
+      clearSessionAndNotify(status === 403 ? "forbidden" : "unauthorized");
     }
     return Promise.reject(error);
   }
@@ -130,6 +145,8 @@ export const servicesAPI = {
     duration: number;
     category: string;
     isActive?: boolean;
+    useClassPricing?: boolean;
+    classPrices?: Record<string, number>;
   }) => api.post("/services", data),
   update: (id: number, data: any) => api.patch(`/services/${id}`, data),
   delete: (id: number) => api.delete(`/services/${id}`),

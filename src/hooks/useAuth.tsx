@@ -18,6 +18,16 @@ interface AuthState {
   setUser: (user: User, token: string) => void;
 }
 
+function normalizeSession(
+  user: User | null,
+  token: string | null,
+): Pick<AuthState, 'user' | 'token' | 'isAuthenticated'> {
+  if (!token || !user) {
+    return { user: null, token: null, isAuthenticated: false };
+  }
+  return { user, token, isAuthenticated: true };
+}
+
 export const useAuth = create<AuthState>()(
   persist(
     (set) => ({
@@ -29,12 +39,10 @@ export const useAuth = create<AuthState>()(
           const response = await authAPI.login(phone, password);
           const data = response.data;
           const user = data.user;
-          // Бэкенд может отдавать accessToken или token
           const token = data.accessToken ?? data.token;
           if (!token || !user) {
             throw new Error('Неверный формат ответа от сервера');
           }
-          // Проверяем, что пользователь имеет права администратора
           if (user.role === 'CLIENT') {
             throw new Error('У вас нет прав доступа к админ-панели');
           }
@@ -48,20 +56,34 @@ export const useAuth = create<AuthState>()(
             token,
             isAuthenticated: true,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Login error:', error);
-          throw new Error(error.response?.data?.message || error.message || 'Ошибка авторизации');
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          throw new Error(
+            err.response?.data?.message || err.message || 'Ошибка авторизации',
+          );
         }
       },
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
       },
       setUser: (user: User, token: string) => {
-        set({ user, token, isAuthenticated: true });
+        set(normalizeSession(user, token));
       },
     }),
     {
       name: 'auth-storage',
-    }
-  )
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
 );
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('lp-auth-session-expired', () => {
+    useAuth.getState().logout();
+  });
+}

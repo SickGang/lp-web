@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,16 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [forbiddenMessage, setForbiddenMessage] = useState("");
+  const navigate = useNavigate();
   const { login } = useAuth();
 
   useEffect(() => {
-    if (searchParams.get("reason") === "forbidden") {
+    const forbiddenFromStorage =
+      sessionStorage.getItem("auth-logout-reason") === "forbidden";
+    if (forbiddenFromStorage) {
+      sessionStorage.removeItem("auth-logout-reason");
+    }
+    if (searchParams.get("reason") === "forbidden" || forbiddenFromStorage) {
       setForbiddenMessage(
         "Недостаточно прав. У пользователя должна быть роль OWNER или ADMIN в базе данных.",
       );
@@ -38,6 +44,7 @@ const Login = () => {
 
     try {
       await login(ruPhoneToE164(phone), password);
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError("Неверный номер телефона или пароль");
     }
