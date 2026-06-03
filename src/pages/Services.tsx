@@ -317,6 +317,8 @@ const ServicesPage = () => {
                         duration: "120",
                         priceRub: "",
                         isActive: true,
+                        useClassPricing: false,
+                        tierRub: emptyTierRub(),
                       });
                       createModal.onOpen();
                     }}
