@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { adminAPI, servicesAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import {
   ruPhoneToE164,
 } from "@/lib/ruPhoneMask";
 import { cn } from "@/lib/utils";
+import CarCatalogPicker from "@/components/CarCatalogPicker";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 
 type ClientCar = {
   id: number;
@@ -18,12 +20,27 @@ type ClientCar = {
   hasNoPlate: boolean;
 };
 
+type ClientListItem = {
+  id: number;
+  phone?: string | null;
+  name?: string | null;
+  cars: ClientCar[];
+};
+
 type ServiceItem = {
   id: number;
   name: string;
   price: number;
+  resolvedPrice?: number;
+  useClassPricing?: boolean;
   isActive: boolean;
 };
+
+function serviceDisplayPrice(s: ServiceItem): number {
+  return typeof s.resolvedPrice === "number" ? s.resolvedPrice : s.price;
+}
+
+type BookingMode = "existing" | "walkin";
 
 type Props = {
   date: string;
@@ -40,75 +57,156 @@ const AdminCreateBookingModal = ({
   onClose,
   onSuccess,
 }: Props) => {
+  const [mode, setMode] = useState<BookingMode>("existing");
+  const [clientSearchInput, setClientSearchInput] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<number | "">("");
   const [phone, setPhone] = useState("");
   const [clientName, setClientName] = useState("");
   const [carId, setCarId] = useState<number | "">("");
   const [carBrand, setCarBrand] = useState("");
   const [carModel, setCarModel] = useState("");
+  const [catalogClass, setCatalogClass] = useState("");
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [notes, setNotes] = useState("");
-  const [lookupCars, setLookupCars] = useState<ClientCar[]>([]);
   const [error, setError] = useState("");
 
   const phoneE164 = isRuPhoneComplete(phone) ? ruPhoneToE164(phone) : "";
 
-  const { data: services = [], isLoading: servicesLoading } = useQuery({
-    queryKey: ["services-active"],
+  const carLabel = (car: ClientCar) => {
+    const plate =
+      car.hasNoPlate || !car.licensePlate
+        ? "без номера"
+        : car.licensePlate;
+    return `${car.brand} ${car.model} (${plate})`;
+  };
+
+  const clientLabel = (c: ClientListItem) => {
+    const name = c.name?.trim() || "Без имени";
+    const ph = c.phone ? formatRuPhoneDisplay(c.phone) : "—";
+    return `${name} · ${ph}`;
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setClientSearch(clientSearchInput), 300);
+    return () => clearTimeout(timer);
+  }, [clientSearchInput]);
+
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ["admin-clients", clientSearch],
     queryFn: async () => {
-      const res = await servicesAPI.getAll(false);
+      const res = await adminAPI.listClients(
+        clientSearch.trim() ? clientSearch.trim() : undefined,
+      );
+      return (res.data ?? []) as ClientListItem[];
+    },
+  });
+
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === selectedUserId),
+    [clients, selectedUserId],
+  );
+
+  const clientCars = selectedClient?.cars ?? [];
+
+  const clientOptions = useMemo(
+    () =>
+      clients.map((c) => ({
+        value: String(c.id),
+        label: clientLabel(c),
+      })),
+    [clients],
+  );
+
+  const selectedClientLabel = selectedClient
+    ? clientLabel(selectedClient)
+    : undefined;
+
+  const carOptions = useMemo(
+    () =>
+      clientCars.map((car) => ({
+        value: String(car.id),
+        label: carLabel(car),
+      })),
+    [clientCars],
+  );
+
+  const selectedCar =
+    carId !== "" ? clientCars.find((c) => c.id === carId) : undefined;
+  const selectedCarLabel = selectedCar ? carLabel(selectedCar) : undefined;
+
+  const servicesPricing = useMemo(() => {
+    if (mode === "existing" && carId !== "") {
+      return { carId: Number(carId) };
+    }
+    if (mode === "walkin" && carBrand.trim() && carModel.trim()) {
+      return {
+        carBrand: carBrand.trim(),
+        carModel: carModel.trim(),
+        ...(catalogClass ? { catalogClass } : {}),
+      };
+    }
+    return undefined;
+  }, [mode, carId, carBrand, carModel, catalogClass]);
+
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ["services-active", servicesPricing],
+    queryFn: async () => {
+      const res = await servicesAPI.getAll(false, servicesPricing);
       return (res.data ?? []) as ServiceItem[];
     },
   });
 
   useEffect(() => {
-    if (!phoneE164) {
-      setLookupCars([]);
-      return;
-    }
+    setServiceIds([]);
+  }, [servicesPricing, mode]);
 
-    const timer = setTimeout(async () => {
-      try {
-        const res = await adminAPI.lookupClient(phoneE164);
-        const data = res.data as {
-          found: boolean;
-          name?: string | null;
-          cars?: ClientCar[];
-        };
-        if (data.found) {
-          setClientName((prev) => (prev.trim() ? prev : data.name ?? ""));
-          setLookupCars(data.cars ?? []);
-          if ((data.cars ?? []).length === 1) {
-            setCarId(data.cars![0].id);
-            setCarBrand("");
-            setCarModel("");
-          }
-        } else {
-          setLookupCars([]);
-          setCarId("");
-        }
-      } catch {
-        setLookupCars([]);
+  useEffect(() => {
+    if (mode !== "existing") return;
+    setCarId("");
+    if (selectedClient) {
+      setPhone(
+        selectedClient.phone
+          ? formatRuPhoneDisplay(selectedClient.phone)
+          : "",
+      );
+      setClientName(selectedClient.name ?? "");
+      if (selectedClient.cars.length === 1) {
+        setCarId(selectedClient.cars[0].id);
       }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [phoneE164]);
+    }
+  }, [selectedUserId, selectedClient, mode]);
 
   const createMutation = useMutation({
     mutationFn: () => {
       const payload: Parameters<typeof adminAPI.createBooking>[0] = {
-        phone: phoneE164,
         serviceIds,
         date,
         slotStart,
         confirmImmediately: true,
       };
-      if (clientName.trim()) payload.clientName = clientName.trim();
+
+      if (mode === "existing") {
+        if (selectedUserId === "") {
+          throw new Error("Выберите клиента");
+        }
+        payload.userId = selectedUserId;
+        if (carId !== "") payload.carId = carId;
+        if (notes.trim()) payload.notes = notes.trim();
+        return adminAPI.createBooking(payload);
+      }
+
+      if (!isRuPhoneComplete(phone)) {
+        throw new Error("Введите полный номер телефона");
+      }
+      payload.guestOnly = true;
+      payload.phone = phoneE164;
+      payload.clientName = clientName.trim() || "Гость";
       if (notes.trim()) payload.notes = notes.trim();
-      if (carId !== "") payload.carId = carId;
-      else if (carBrand.trim() && carModel.trim()) {
+      if (carBrand.trim() && carModel.trim()) {
         payload.carBrand = carBrand.trim();
         payload.carModel = carModel.trim();
+        if (catalogClass) payload.catalogClass = catalogClass;
       }
       return adminAPI.createBooking(payload);
     },
@@ -119,7 +217,9 @@ const AdminCreateBookingModal = ({
     onError: (err: unknown) => {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })
-          ?.response?.data?.message ?? "Не удалось создать запись";
+          ?.response?.data?.message ??
+        (err as Error)?.message ??
+        "Не удалось создать запись";
       setError(Array.isArray(msg) ? msg.join(", ") : String(msg));
     },
   });
@@ -133,7 +233,11 @@ const AdminCreateBookingModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!isRuPhoneComplete(phone)) {
+    if (mode === "existing" && selectedUserId === "") {
+      setError("Выберите клиента из списка");
+      return;
+    }
+    if (mode === "walkin" && !isRuPhoneComplete(phone)) {
       setError("Введите полный номер телефона");
       return;
     }
@@ -142,14 +246,6 @@ const AdminCreateBookingModal = ({
       return;
     }
     createMutation.mutate();
-  };
-
-  const carLabel = (car: ClientCar) => {
-    const plate =
-      car.hasNoPlate || !car.licensePlate
-        ? "без номера"
-        : car.licensePlate;
-    return `${car.brand} ${car.model} (${plate})`;
   };
 
   return (
@@ -166,76 +262,143 @@ const AdminCreateBookingModal = ({
           {date} · {slotStart} – {slotEnd}
         </p>
 
+        <div className="mb-4 flex gap-2 rounded-lg bg-[#1C1C1E] p-1">
+          <button
+            type="button"
+            className={cn(
+              "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
+              mode === "existing"
+                ? "bg-[#D9E57F] text-[#17181C]"
+                : "text-[#CCCCCC] hover:text-white",
+            )}
+            onClick={() => {
+              setMode("existing");
+              setError("");
+            }}
+          >
+            Клиент из базы
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
+              mode === "walkin"
+                ? "bg-[#D9E57F] text-[#17181C]"
+                : "text-[#CCCCCC] hover:text-white",
+            )}
+            onClick={() => {
+              setMode("walkin");
+              setSelectedUserId("");
+              setCarId("");
+              setCarBrand("");
+              setCarModel("");
+              setCatalogClass("");
+              setError("");
+            }}
+          >
+            Разовая запись
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm text-[#CCCCCC]">Телефон</label>
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(formatRuPhoneDisplay(e.target.value))}
-              placeholder="+7 (999) 999-99-99"
-              className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm text-[#CCCCCC]">Имя клиента</label>
-            <Input
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Иван"
-              className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
-            />
-          </div>
-
-          {lookupCars.length > 0 && (
-            <div>
-              <label className="mb-1 block text-sm text-[#CCCCCC]">Автомобиль</label>
-              <select
-                value={carId}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setCarId(v === "" ? "" : Number(v));
-                  if (v !== "") {
-                    setCarBrand("");
-                    setCarModel("");
-                  }
+          {mode === "existing" ? (
+            <>
+              <SearchableCombobox
+                label="Клиент"
+                placeholder="Имя или телефон"
+                options={clientOptions}
+                value={selectedUserId === "" ? "" : String(selectedUserId)}
+                selectedLabel={selectedClientLabel}
+                onChange={(id) => {
+                  setSelectedUserId(id === "" ? "" : Number(id));
                 }}
-                className="w-full rounded-md border border-[#3A3A3C] bg-[#1C1C1E] px-3 py-2 text-white"
-              >
-                <option value="">Не выбран</option>
-                {lookupCars.map((car) => (
-                  <option key={car.id} value={car.id}>
-                    {carLabel(car)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+                onSearchChange={setClientSearchInput}
+                emptyText={
+                  clientsLoading
+                    ? "Загрузка..."
+                    : "Клиенты не найдены. Используйте «Разовая запись»."
+                }
+              />
 
-          {lookupCars.length === 0 && (
-            <div className="grid grid-cols-2 gap-3">
+              {selectedUserId !== "" && clientCars.length > 0 && (
+                <SearchableCombobox
+                  label="Автомобиль"
+                  placeholder="Выберите автомобиль"
+                  options={carOptions}
+                  value={carId === "" ? "" : String(carId)}
+                  selectedLabel={selectedCarLabel}
+                  onChange={(id) => {
+                    setCarId(id === "" ? "" : Number(id));
+                    setServiceIds([]);
+                  }}
+                  emptyText="Нет автомобилей"
+                />
+              )}
+
+              {selectedUserId !== "" && clientCars.length === 0 && (
+                <p className="text-sm text-[#8E8E93]">
+                  У клиента нет автомобилей в приложении — запись без авто.
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-[#8E8E93]">
+                Данные сохраняются только в записи, клиент в базу не добавляется.
+              </p>
               <div>
-                <label className="mb-1 block text-sm text-[#CCCCCC]">Марка</label>
+                <label className="mb-1 block text-sm text-[#CCCCCC]">
+                  Телефон
+                </label>
                 <Input
-                  value={carBrand}
-                  onChange={(e) => setCarBrand(e.target.value)}
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(formatRuPhoneDisplay(e.target.value))
+                  }
+                  placeholder="+7 (999) 999-99-99"
                   className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
+                  autoFocus
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-[#CCCCCC]">Модель</label>
+                <label className="mb-1 block text-sm text-[#CCCCCC]">
+                  Имя клиента
+                </label>
                 <Input
-                  value={carModel}
-                  onChange={(e) => setCarModel(e.target.value)}
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Иван"
                   className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
                 />
               </div>
-            </div>
+              <CarCatalogPicker
+                brand={carBrand}
+                model={carModel}
+                onBrandChange={(name) => {
+                  setCarBrand(name);
+                  setCarModel("");
+                  setCatalogClass("");
+                  setServiceIds([]);
+                }}
+                onModelChange={(name, _modelId, cls) => {
+                  setCarModel(name);
+                  setCatalogClass(cls);
+                  setServiceIds([]);
+                }}
+              />
+            </>
           )}
 
           <div>
             <label className="mb-2 block text-sm text-[#CCCCCC]">Услуги</label>
+            {servicesPricing &&
+              (mode === "walkin" ? carBrand && carModel : carId !== "") && (
+              <p className="mb-2 text-xs text-[#8E8E93]">
+                {mode === "walkin"
+                  ? `Цены по классу: ${carBrand} ${carModel}`
+                  : "Цены по классу выбранного автомобиля"}
+              </p>
+            )}
             {servicesLoading ? (
               <p className="text-sm text-[#8E8E93]">Загрузка...</p>
             ) : (
@@ -258,7 +421,7 @@ const AdminCreateBookingModal = ({
                     />
                     <span className="flex-1">{s.name}</span>
                     <span className="text-[#8E8E93]">
-                      {(s.price / 100).toLocaleString("ru-RU")} ₽
+                      {(serviceDisplayPrice(s) / 100).toLocaleString("ru-RU")} ₽
                     </span>
                   </label>
                 ))}
@@ -267,7 +430,9 @@ const AdminCreateBookingModal = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-[#CCCCCC]">Комментарий</label>
+            <label className="mb-1 block text-sm text-[#CCCCCC]">
+              Комментарий
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

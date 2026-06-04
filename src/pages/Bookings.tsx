@@ -86,10 +86,20 @@ const Bookings = () => {
       }
 
       const user = booking.user ?? {};
+      const guestName = booking.guestName as string | undefined;
+      const guestPhone = booking.guestPhone as string | undefined;
       const services = (booking.services ?? booking.selectedServices ?? [])
         .map((s: any) => s?.service?.name ?? s?.name)
         .filter(Boolean)
         .join(', ');
+
+      const carLabel =
+        booking.carDisplay ??
+        (booking.car
+          ? `${booking.car.brand} ${booking.car.model}`
+          : booking.guestCarBrand || booking.guestCarModel
+            ? `${booking.guestCarBrand ?? ""} ${booking.guestCarModel ?? ""}`.trim()
+            : "Не указан");
 
       return {
         startTime: slot.startTime,
@@ -97,12 +107,15 @@ const Bookings = () => {
         booking: {
           id: booking.id,
           status: booking.status || "pending",
-          client: user.name || user.firstName || user.phone || '—',
-          car: booking.car
-            ? `${booking.car.brand} ${booking.car.model}`
-            : 'Не указан',
+          client:
+            guestName ||
+            user.name ||
+            user.firstName ||
+            user.phone ||
+            "—",
+          car: carLabel || "Не указан",
           services: services || '—',
-          phone: user.phone || '—',
+          phone: guestPhone || user.phone || '—',
           notes: typeof booking.notes === 'string' ? booking.notes.trim() : '',
         },
       };

@@ -70,10 +70,14 @@ export const adminAPI = {
     api.get("/admin/upcoming-bookings", { params: { limit } }),
   getBookingsByDate: (date: string) =>
     api.get("/admin/bookings-by-date", { params: { date } }),
+  listClients: (search?: string) =>
+    api.get("/admin/clients", { params: search ? { search } : {} }),
   lookupClient: (phone: string) =>
     api.get("/admin/clients/lookup", { params: { phone } }),
   createBooking: (data: {
-    phone: string;
+    userId?: number;
+    guestOnly?: boolean;
+    phone?: string;
     clientName?: string;
     serviceIds: number[];
     date: string;
@@ -81,6 +85,7 @@ export const adminAPI = {
     carId?: number;
     carBrand?: string;
     carModel?: string;
+    catalogClass?: string;
     notes?: string;
     confirmImmediately?: boolean;
   }) => api.post("/admin/bookings", data),
@@ -133,8 +138,24 @@ export const bookingsAPI = {
 
 // Services API
 export const servicesAPI = {
-  getAll: (includeInactive = true) =>
-    api.get("/services", { params: { includeInactive } }),
+  getAll: (
+    includeInactive = true,
+    pricing?: {
+      carId?: number;
+      carBrand?: string;
+      carModel?: string;
+      catalogClass?: string;
+    },
+  ) =>
+    api.get("/services", {
+      params: {
+        includeInactive,
+        ...(pricing?.carId != null ? { carId: pricing.carId } : {}),
+        ...(pricing?.carBrand ? { carBrand: pricing.carBrand } : {}),
+        ...(pricing?.carModel ? { carModel: pricing.carModel } : {}),
+        ...(pricing?.catalogClass ? { catalogClass: pricing.catalogClass } : {}),
+      },
+    }),
   getCategories: () => api.get("/services/categories"),
   createCategory: (name: string) => api.post("/services/categories", { name }),
   deleteCategory: (id: number) => api.delete(`/services/categories/${id}`),

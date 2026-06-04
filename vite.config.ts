@@ -19,6 +19,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/cars-base': {
+        target: 'https://api.cars-base.ru',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/cars-base/, ''),
+      },
     },
   },
 });
