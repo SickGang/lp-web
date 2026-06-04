@@ -1,12 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
-import {
-  fetchCarsBaseCatalog,
-  filterBrands,
-  filterModels,
-  getModelsForBrand,
-} from "@/lib/carsBaseCatalog";
+import { fetchCarsBaseCatalog, getModelsForBrand } from "@/lib/carsBaseCatalog";
 
 type Props = {
   brand: string;
@@ -69,7 +64,7 @@ const CarCatalogPicker = ({
     }
   };
 
-  const handleModelSelect = (id: string, name: string) => {
+  const handleModelSelect = (id: string, _name: string) => {
     setModelId(id);
     const selected = models.find((m) => m.id === id);
     if (selected) {
