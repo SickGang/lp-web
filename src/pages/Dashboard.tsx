@@ -72,6 +72,18 @@ const Dashboard = () => {
     },
   });
 
+  const handleCancelBooking = async (bookingId: number) => {
+    const isConfirmed = window.confirm('Удалить эту запись?');
+    if (!isConfirmed) return;
+
+    try {
+      await cancelBookingMutation.mutateAsync(bookingId);
+    } catch (error) {
+      console.error('Failed to cancel booking:', error);
+      window.alert('Не удалось удалить запись. Попробуйте снова.');
+    }
+  };
+
   const rawBookings = Array.isArray(bookingsData)
     ? bookingsData
     : (bookingsData as { data?: ApiBooking[] })?.data ?? [];
@@ -179,8 +191,8 @@ const Dashboard = () => {
                     </Text>
                   )}
                 </Box>
-                {booking.status === 'pending' && (
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={2}>
+                <Stack direction={{ base: 'column', md: 'row' }} spacing={2}>
+                  {booking.status === 'pending' && (
                     <Button
                       size="sm"
                       className="w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
@@ -189,17 +201,17 @@ const Dashboard = () => {
                     >
                       {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
-                      onClick={() => cancelBookingMutation.mutate(booking.id)}
-                      isLoading={cancelBookingMutation.isPending}
-                    >
-                      {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
-                    </Button>
-                  </Stack>
-                )}
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                    onClick={() => handleCancelBooking(booking.id)}
+                    isLoading={cancelBookingMutation.isPending}
+                  >
+                    {cancelBookingMutation.isPending ? 'Удаление...' : 'Удалить'}
+                  </Button>
+                </Stack>
               </Stack>
             </CardBody>
           </Card>

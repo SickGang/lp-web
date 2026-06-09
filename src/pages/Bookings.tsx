@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -50,12 +50,28 @@ const intervalsOverlap = (
   return s1 < e2 && e1 > s2;
 };
 
+/** Слот недоступен, если дата в прошлом или сегодня и время начала слота уже наступило (локальное время). */
+const isSlotPast = (date: Date, slotStartTime: string, now: Date): boolean => {
+  const todayKey = format(now, 'yyyy-MM-dd');
+  const selectedKey = format(date, 'yyyy-MM-dd');
+  if (selectedKey < todayKey) return true;
+  if (selectedKey > todayKey) return false;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  return currentMinutes >= timeToMinutes(slotStartTime);
+};
+
 const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [createSlot, setCreateSlot] = useState<{ startTime: string; endTime: string } | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
   const dateKey = format(selectedDate, 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
   
   const { data: bookingsData, isLoading, isError } = useQuery({
     queryKey: ['bookings-by-date', dateKey],
@@ -190,18 +206,22 @@ const Bookings = () => {
         <p className="text-red-500">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {timeSlots.map((slot) => (
+          {timeSlots.map((slot) => {
+            const isPast = !slot.booking && isSlotPast(selectedDate, slot.startTime, now);
+            const isSelectable = !slot.booking && !isPast;
+
+            return (
             <Card
               key={slot.startTime}
-              role={!slot.booking ? 'button' : undefined}
-              tabIndex={!slot.booking ? 0 : undefined}
+              role={isSelectable ? 'button' : undefined}
+              tabIndex={isSelectable ? 0 : undefined}
               onClick={() => {
-                if (!slot.booking) {
+                if (isSelectable) {
                   setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
                 }
               }}
               onKeyDown={(e) => {
-                if (!slot.booking && (e.key === 'Enter' || e.key === ' ')) {
+                if (isSelectable && (e.key === 'Enter' || e.key === ' ')) {
                   e.preventDefault();
                   setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
                 }
@@ -210,7 +230,9 @@ const Bookings = () => {
                 'rounded-2xl',
                 slot.booking
                   ? 'border-muted-foreground/50'
-                  : 'cursor-pointer hover:border-[#D9E57F]/50',
+                  : isPast
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer hover:border-[#D9E57F]/50',
               )}
             >
               <CardContent className="p-4">
@@ -247,6 +269,11 @@ const Bookings = () => {
                       {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
                     </Button>
                   </div>
+                ) : isPast ? (
+                  <>
+                    <p className="text-muted-foreground">Время прошло</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Запись недоступна</p>
+                  </>
                 ) : (
                   <>
                     <p className="text-[#4CAF50]">Свободно</p>
@@ -255,7 +282,8 @@ const Bookings = () => {
                 )}
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
 
