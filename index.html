@@ -1,6 +1,28 @@
 <!doctype html>
 <html lang="ru">
   <head>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('theme-storage');
+          var pref = 'dark';
+          if (raw) {
+            var data = JSON.parse(raw);
+            if (data && data.state && data.state.preference) {
+              pref = data.state.preference;
+            }
+          }
+          var resolved =
+            pref === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : pref;
+          document.documentElement.classList.add(resolved);
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -16,10 +16,7 @@ export type CarCatalogBrand = {
   models: CarCatalogModel[];
 };
 
-/** В dev — через proxy Vite (`/cars-base`), в prod — напрямую */
-const CARS_BASE_URL = import.meta.env.DEV
-  ? "/cars-base/full"
-  : "https://api.cars-base.ru/full";
+const CARS_BASE_URL = "https://api.cars-base.ru/full";
 
 export async function fetchCarsBaseCatalog(): Promise<CarCatalogBrand[]> {
   const response = await axios.get<{ data?: CarCatalogBrand[] }>(CARS_BASE_URL);

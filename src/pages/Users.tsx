@@ -16,6 +16,7 @@ import {
   HStack,
   Stack,
 } from '@chakra-ui/react';
+import { Pencil, Trash2, UserPlus } from 'lucide-react';
 import { usersAPI } from '../services/api';
 import { Button } from '@/components/ui/button';
 
@@ -86,7 +87,8 @@ const Users = () => {
       <HStack justify="space-between" mb={6} wrap="wrap" gap={4}>
         <Heading size="lg" color="lp.textPrimary">Управление пользователями</Heading>
         <Button size="sm" variant="outline" disabled title="В разработке">
-          + Добавить администратора
+          <UserPlus size={16} strokeWidth={2} className="mr-2" />
+          Добавить администратора
         </Button>
       </HStack>
 
@@ -150,9 +152,11 @@ const Users = () => {
                     {user.role !== 'OWNER' && (
                       <HStack spacing={2}>
                         <Button size="xs" variant="outline">
+                          <Pencil size={14} strokeWidth={2} className="mr-1.5" />
                           Изменить роль
                         </Button>
                         <Button size="xs" variant="outline" className="border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10">
+                          <Trash2 size={14} strokeWidth={2} className="mr-1.5" />
                           Удалить
                         </Button>
                       </HStack>

@@ -23,28 +23,30 @@ function Calendar({
         months: "flex flex-col gap-4",
         month: "w-full",
         caption: "mb-3 flex items-center justify-between",
-        caption_label: "text-sm font-medium text-white",
+        caption_label: "text-sm font-medium text-foreground",
         nav: "flex items-center gap-1",
         button_previous: cn(
           buttonVariants({ variant: "outline", size: "icon" }),
-          "h-7 w-7 border-[#3A3A3C] bg-transparent p-0 text-white hover:bg-[#27292D]"
+          "h-7 w-7 p-0"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline", size: "icon" }),
-          "h-7 w-7 border-[#3A3A3C] bg-transparent p-0 text-white hover:bg-[#27292D]"
+          "h-7 w-7 p-0"
         ),
         month_grid: "w-full border-collapse",
         weekdays: "mb-1 grid grid-cols-7",
-        weekday: "text-center text-xs font-normal text-[#8E8E93]",
+        weekday: "text-center text-xs font-normal text-muted-foreground",
         week: "grid grid-cols-7",
-        day: "flex items-center justify-center",
+        day: "flex items-center justify-center p-0",
         day_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 rounded-md p-0 font-normal text-white hover:bg-[#27292D] aria-selected:bg-white aria-selected:text-black data-[outside=true]:text-[#666666] data-[outside=true]:opacity-70 data-[outside=true]:aria-selected:bg-[#3A3A3C] data-[outside=true]:aria-selected:text-[#CCCCCC]"
+          "h-9 w-9 rounded-md p-0 font-normal text-foreground hover:bg-muted",
         ),
-        today: "border border-[#3A3A3C]",
-        outside: "text-[#666666]",
-        disabled: "text-[#666666] opacity-50",
+        selected:
+          "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground [&>button]:font-semibold",
+        today: "[&>button]:border [&>button]:border-border",
+        outside: "[&>button]:text-muted-foreground [&>button]:opacity-70",
+        disabled: "text-muted-foreground opacity-50",
         hidden: "invisible",
         ...classNames,
       }}

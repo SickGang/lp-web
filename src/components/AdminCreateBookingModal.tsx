@@ -32,12 +32,17 @@ type ServiceItem = {
   name: string;
   price: number;
   resolvedPrice?: number;
+  resolvedPricingTierLabel?: string;
   useClassPricing?: boolean;
   isActive: boolean;
 };
 
 function serviceDisplayPrice(s: ServiceItem): number {
   return typeof s.resolvedPrice === "number" ? s.resolvedPrice : s.price;
+}
+
+function formatRub(kopeks: number): string {
+  return `${(kopeks / 100).toLocaleString("ru-RU")} ₽`;
 }
 
 type BookingMode = "existing" | "walkin";
@@ -149,13 +154,30 @@ const AdminCreateBookingModal = ({
     return undefined;
   }, [mode, carId, carBrand, carModel, catalogClass]);
 
+  const canLoadServices =
+    mode === "walkin"
+      ? !!(carBrand.trim() && carModel.trim())
+      : selectedUserId !== "" &&
+        (clientCars.length === 0 || carId !== "");
+
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["services-active", servicesPricing],
     queryFn: async () => {
       const res = await servicesAPI.getAll(false, servicesPricing);
       return (res.data ?? []) as ServiceItem[];
     },
+    enabled: canLoadServices,
   });
+
+  const pricingTierLabel = services[0]?.resolvedPricingTierLabel;
+
+  const selectedTotalKopeks = useMemo(
+    () =>
+      services
+        .filter((s) => serviceIds.includes(s.id))
+        .reduce((sum, s) => sum + serviceDisplayPrice(s), 0),
+    [services, serviceIds],
+  );
 
   useEffect(() => {
     setServiceIds([]);
@@ -254,22 +276,22 @@ const AdminCreateBookingModal = ({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#3A3A3C] bg-[#2C2C2E] p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-1 text-xl font-bold text-white">Новая запись</h3>
-        <p className="mb-4 text-sm text-[#CCCCCC]">
+        <h3 className="mb-1 text-xl font-bold text-foreground">Новая запись</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
           {date} · {slotStart} – {slotEnd}
         </p>
 
-        <div className="mb-4 flex gap-2 rounded-lg bg-[#1C1C1E] p-1">
+        <div className="mb-4 flex gap-2 rounded-lg bg-muted p-1">
           <button
             type="button"
             className={cn(
               "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
               mode === "existing"
                 ? "bg-[#D9E57F] text-[#17181C]"
-                : "text-[#CCCCCC] hover:text-white",
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => {
               setMode("existing");
@@ -284,7 +306,7 @@ const AdminCreateBookingModal = ({
               "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
               mode === "walkin"
                 ? "bg-[#D9E57F] text-[#17181C]"
-                : "text-[#CCCCCC] hover:text-white",
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => {
               setMode("walkin");
@@ -336,18 +358,18 @@ const AdminCreateBookingModal = ({
               )}
 
               {selectedUserId !== "" && clientCars.length === 0 && (
-                <p className="text-sm text-[#8E8E93]">
+                <p className="text-sm text-muted-foreground">
                   У клиента нет автомобилей в приложении — запись без авто.
                 </p>
               )}
             </>
           ) : (
             <>
-              <p className="text-xs text-[#8E8E93]">
+              <p className="text-xs text-muted-foreground">
                 Данные сохраняются только в записи, клиент в базу не добавляется.
               </p>
               <div>
-                <label className="mb-1 block text-sm text-[#CCCCCC]">
+                <label className="mb-1 block text-sm text-muted-foreground">
                   Телефон
                 </label>
                 <Input
@@ -356,19 +378,17 @@ const AdminCreateBookingModal = ({
                     setPhone(formatRuPhoneDisplay(e.target.value))
                   }
                   placeholder="+7 (999) 999-99-99"
-                  className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-[#CCCCCC]">
+                <label className="mb-1 block text-sm text-muted-foreground">
                   Имя клиента
                 </label>
                 <Input
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Иван"
-                  className="border-[#3A3A3C] bg-[#1C1C1E] text-white"
                 />
               </div>
               <CarCatalogPicker
@@ -390,64 +410,86 @@ const AdminCreateBookingModal = ({
           )}
 
           <div>
-            <label className="mb-2 block text-sm text-[#CCCCCC]">Услуги</label>
-            {servicesPricing &&
-              (mode === "walkin" ? carBrand && carModel : carId !== "") && (
-              <p className="mb-2 text-xs text-[#8E8E93]">
+            <label className="mb-2 block text-sm text-muted-foreground">Услуги</label>
+            {!canLoadServices ? (
+              <p className="text-sm text-muted-foreground">
                 {mode === "walkin"
-                  ? `Цены по классу: ${carBrand} ${carModel}`
-                  : "Цены по классу выбранного автомобиля"}
+                  ? "Укажите марку и модель автомобиля для расчёта цен"
+                  : selectedUserId === ""
+                    ? "Сначала выберите клиента"
+                    : "Выберите автомобиль для расчёта цен по классу"}
               </p>
-            )}
-            {servicesLoading ? (
-              <p className="text-sm text-[#8E8E93]">Загрузка...</p>
+            ) : servicesLoading ? (
+              <p className="text-sm text-muted-foreground">Загрузка...</p>
             ) : (
-              <div className="max-h-40 space-y-2 overflow-y-auto">
-                {services.map((s) => (
-                  <label
-                    key={s.id}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-                      serviceIds.includes(s.id)
-                        ? "border-[#D9E57F] bg-[#D9E57F]/10 text-white"
-                        : "border-[#3A3A3C] text-[#CCCCCC]",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={serviceIds.includes(s.id)}
-                      onChange={() => toggleService(s.id)}
-                      className="accent-[#D9E57F]"
-                    />
-                    <span className="flex-1">{s.name}</span>
-                    <span className="text-[#8E8E93]">
-                      {(serviceDisplayPrice(s) / 100).toLocaleString("ru-RU")} ₽
+              <>
+                {pricingTierLabel && (
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    {pricingTierLabel}
+                    {selectedCar
+                      ? ` · ${selectedCar.brand} ${selectedCar.model}`
+                      : mode === "walkin" && carBrand && carModel
+                        ? ` · ${carBrand} ${carModel}`
+                        : ""}
+                  </p>
+                )}
+                <div className="max-h-40 space-y-2 overflow-y-auto">
+                  {services.map((s) => (
+                    <label
+                      key={s.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+                        serviceIds.includes(s.id)
+                          ? "border-[#D9E57F] bg-[#D9E57F]/10 text-foreground"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={serviceIds.includes(s.id)}
+                        onChange={() => toggleService(s.id)}
+                        className="accent-[#D9E57F]"
+                      />
+                      <span className="flex-1">{s.name}</span>
+                      <span className="text-muted-foreground">
+                        {formatRub(serviceDisplayPrice(s))}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {serviceIds.length > 0 && (
+                  <div className="mt-3 flex items-center justify-between rounded-lg border border-[#D9E57F]/40 bg-[#D9E57F]/10 px-3 py-2">
+                    <span className="text-sm font-medium text-foreground">
+                      Итого
                     </span>
-                  </label>
-                ))}
-              </div>
+                    <span className="text-lg font-bold text-foreground">
+                      {formatRub(selectedTotalKopeks)}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-[#CCCCCC]">
+            <label className="mb-1 block text-sm text-muted-foreground">
               Комментарий
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-md border border-[#3A3A3C] bg-[#1C1C1E] px-3 py-2 text-sm text-white"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
             />
           </div>
 
-          {error && <p className="text-sm text-[#FF3B30]">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
-              className="flex-1 border-[#3A3A3C] text-white"
+              className="flex-1"
               onClick={onClose}
             >
               Отмена

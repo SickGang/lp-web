@@ -3,6 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, startOfDay, endOfMonth } from "date-fns";
 import { ru } from "date-fns/locale";
 import {
+  AlertTriangle,
+  ClipboardList,
+  ClipboardPen,
+  Package,
+  Pencil,
+  Plus,
+} from "lucide-react";
+import {
   Box,
   Heading,
   Tabs,
@@ -299,14 +307,25 @@ const Chemistry = () => {
           Учет химии
         </Heading>
         <Button variant="outline" onClick={addModal.onOpen}>
-          + Добавить химию
+          <Plus size={16} strokeWidth={2} className="mr-2" />
+          Добавить химию
         </Button>
       </HStack>
 
       <Tabs index={activeTab} onChange={setActiveTab}>
         <TabList borderColor="lp.border" mb={4} overflowX="auto" overflowY="hidden">
-          <Tab>📦 Склад</Tab>
-          <Tab>📊 История расхода</Tab>
+          <Tab>
+            <HStack spacing={2}>
+              <Package size={16} strokeWidth={2} />
+              <span>Склад</span>
+            </HStack>
+          </Tab>
+          <Tab>
+            <HStack spacing={2}>
+              <ClipboardList size={16} strokeWidth={2} />
+              <span>История расхода</span>
+            </HStack>
+          </Tab>
         </TabList>
 
         <TabPanels>
@@ -333,8 +352,15 @@ const Chemistry = () => {
                       <HStack justify="space-between" mb={2}>
                         <Heading size="sm">{chemical.name}</Heading>
                         {isLowStock && (
-                          <Badge bg="rgba(255, 215, 0, 0.16)" color="#ffe580">
-                            ⚠️ Мало
+                          <Badge
+                            bg="lp.badgeAccentBg"
+                            color="lp.badgeAccentText"
+                            display="inline-flex"
+                            alignItems="center"
+                            gap={1}
+                          >
+                            <AlertTriangle size={12} strokeWidth={2} />
+                            Мало
                           </Badge>
                         )}
                       </HStack>
@@ -362,6 +388,7 @@ const Chemistry = () => {
                           variant="outline"
                           onClick={() => openUsage(chemical)}
                         >
+                          <ClipboardPen size={14} strokeWidth={2} className="mr-1.5" />
                           Записать расход
                         </Button>
                         <Button
@@ -369,6 +396,7 @@ const Chemistry = () => {
                           variant="ghost"
                           onClick={() => openEdit(chemical)}
                         >
+                          <Pencil size={14} strokeWidth={2} className="mr-1.5" />
                           Изменить
                         </Button>
                       </Stack>

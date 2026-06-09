@@ -22,6 +22,7 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { servicesAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
 
@@ -287,7 +288,8 @@ const ServicesPage = () => {
           Услуги
         </Heading>
         <Button variant="outline" onClick={categoryModal.onOpen}>
-          + Добавить категорию
+          <Plus size={16} strokeWidth={2} className="mr-2" />
+          Добавить категорию
         </Button>
       </HStack>
 
@@ -309,6 +311,7 @@ const ServicesPage = () => {
                   <Button
                     size="xs"
                     variant="outline"
+                    aria-label="Добавить услугу"
                     onClick={() => {
                       setCreateForm({
                         name: "",
@@ -323,7 +326,7 @@ const ServicesPage = () => {
                       createModal.onOpen();
                     }}
                   >
-                    +
+                    <Plus size={14} strokeWidth={2} />
                   </Button>
                   <Button
                     size="xs"
@@ -331,8 +334,9 @@ const ServicesPage = () => {
                     className="border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10"
                     onClick={() => deleteCategoryMutation.mutate(category.id)}
                     title="Удалить категорию"
+                    aria-label="Удалить категорию"
                   >
-                    🗑
+                    <Trash2 size={14} strokeWidth={2} />
                   </Button>
                 </HStack>
               </HStack>
@@ -354,11 +358,21 @@ const ServicesPage = () => {
                     <Box>
                       <HStack mb={1} wrap="wrap">
                         <Text fontWeight="600">{s.name}</Text>
-                        <Badge bg={s.isActive ? "rgba(76,175,80,0.2)" : "rgba(255,59,48,0.2)"} color={s.isActive ? "#8fe39a" : "#ffb4ac"}>
+                        <Badge
+                          bg={s.isActive ? "lp.badgeActiveBg" : "lp.badgeInactiveBg"}
+                          color={s.isActive ? "lp.badgeActiveText" : "lp.badgeInactiveText"}
+                          fontWeight="600"
+                        >
                           {s.isActive ? "Включена" : "Выключена"}
                         </Badge>
                         {s.useClassPricing ? (
-                          <Badge bg="rgba(217,229,127,0.2)" color="#d9e57f">По классу авто</Badge>
+                          <Badge
+                            bg="lp.badgeAccentBg"
+                            color="lp.badgeAccentText"
+                            fontWeight="600"
+                          >
+                            По классу авто
+                          </Badge>
                         ) : null}
                       </HStack>
                       {s.description ? <Text color="lp.textSecondary" fontSize="sm">{s.description}</Text> : null}
@@ -378,8 +392,12 @@ const ServicesPage = () => {
                       <Text fontSize="sm" color="lp.textSecondary">Длительность: {s.duration} мин</Text>
                     </Box>
                     <HStack justifySelf={{ base: "start", md: "end" }}>
-                      <Button size="xs" variant="outline" onClick={() => openEdit(s)}>Изменить</Button>
+                      <Button size="xs" variant="outline" onClick={() => openEdit(s)}>
+                        <Pencil size={14} strokeWidth={2} className="mr-1.5" />
+                        Изменить
+                      </Button>
                       <Button size="xs" variant="outline" className="border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10" onClick={() => deleteMutation.mutate(s.id)}>
+                        <Trash2 size={14} strokeWidth={2} className="mr-1.5" />
                         Удалить
                       </Button>
                     </HStack>

@@ -51,18 +51,18 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#17181C] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-[#2C2C2E] border-[#3A3A3C]">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-center text-white">LP Detailing</CardTitle>
-          <p className="text-center text-sm text-[#CCCCCC]">
+          <CardTitle className="text-center text-foreground">LP Detailing</CardTitle>
+          <p className="text-center text-sm text-muted-foreground">
             Панель администратора
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white">
+              <label className="text-sm font-medium text-foreground">
                 Номер телефона
               </label>
               <Input
@@ -74,30 +74,28 @@ const Login = () => {
                 placeholder="+7 (999) 999-99-99"
                 required
                 maxLength={18}
-                className="bg-[#27292D] border-[#3A3A3C]"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Пароль</label>
+              <label className="text-sm font-medium text-foreground">Пароль</label>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Введите пароль"
                 required
-                className="bg-[#27292D] border-[#3A3A3C]"
               />
             </div>
             {forbiddenMessage && (
               <div
-                className="rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200"
+                className="rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-200"
                 role="alert"
               >
                 {forbiddenMessage}
               </div>
             )}
             {error && (
-              <div className="rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">
+              <div className="rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-200">
                 {error}
               </div>
             )}

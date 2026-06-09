@@ -5,6 +5,7 @@ import Bookings from './pages/Bookings';
 import Users from './pages/Users';
 import Chemistry from './pages/Chemistry';
 import ServicesPage from './pages/Services';
+import Settings from './pages/Settings';
 import Login from './pages/Login';
 import { useAuth } from './hooks/useAuth';
 import { useAuthHydrated } from './hooks/useAuthHydrated';
@@ -57,6 +58,7 @@ function App() {
           }
         />
         <Route path="chemistry" element={<Chemistry />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route
         path="*"

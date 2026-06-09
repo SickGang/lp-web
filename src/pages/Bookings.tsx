@@ -160,9 +160,9 @@ const Bookings = () => {
 
   return (
     <div>
-      <h1 className="mb-6 text-4xl font-bold text-white">Записи на мойку</h1>
+      <h1 className="mb-6 text-4xl font-bold text-foreground">Записи на мойку</h1>
 
-      <Card className="mb-8 w-fit border-[#3A3A3C] bg-[#2C2C2E]">
+      <Card className="mb-8 w-fit">
         <CardContent className="p-2">
           <Calendar
             mode="single"
@@ -180,14 +180,14 @@ const Bookings = () => {
         </CardContent>
       </Card>
 
-      <h2 className="mb-4 text-3xl font-semibold text-white">
+      <h2 className="mb-4 text-3xl font-semibold text-foreground">
         Слоты на {format(selectedDate, 'd MMMM', { locale: ru })}
       </h2>
 
       {isLoading ? (
-        <p className="text-[#CCCCCC]">Загрузка...</p>
+        <p className="text-muted-foreground">Загрузка...</p>
       ) : isError ? (
-        <p className="text-[#FF3B30]">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
+        <p className="text-red-500">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {timeSlots.map((slot) => (
@@ -207,22 +207,24 @@ const Bookings = () => {
                 }
               }}
               className={cn(
-                'rounded-2xl border bg-[#2C2C2E]',
-                slot.booking ? 'border-[#8E8E93]' : 'cursor-pointer border-[#3A3A3C] hover:border-[#D9E57F]/50',
+                'rounded-2xl',
+                slot.booking
+                  ? 'border-muted-foreground/50'
+                  : 'cursor-pointer hover:border-[#D9E57F]/50',
               )}
             >
               <CardContent className="p-4">
-                <p className="mb-3 text-xl font-bold text-white">{slot.startTime} - {slot.endTime}</p>
+                <p className="mb-3 text-xl font-bold text-foreground">{slot.startTime} - {slot.endTime}</p>
                 {slot.booking ? (
                   <div className="text-sm">
-                    <p className="font-semibold text-white">{slot.booking.client}</p>
-                    <p className="text-[#CCCCCC]">{slot.booking.phone}</p>
-                    <p className="text-[#CCCCCC]">{slot.booking.car}</p>
-                    <p className="mb-2 text-[#8E8E93]">{slot.booking.services}</p>
+                    <p className="font-semibold text-foreground">{slot.booking.client}</p>
+                    <p className="text-muted-foreground">{slot.booking.phone}</p>
+                    <p className="text-muted-foreground">{slot.booking.car}</p>
+                    <p className="mb-2 text-muted-foreground">{slot.booking.services}</p>
                     {slot.booking.notes && (
-                      <p className="mb-2 text-[#B0B0B0]">Комментарий: {slot.booking.notes}</p>
+                      <p className="mb-2 text-muted-foreground">Комментарий: {slot.booking.notes}</p>
                     )}
-                    <p className="mb-2 text-[#CCCCCC]">
+                    <p className="mb-2 text-muted-foreground">
                       Статус: {slot.booking.status === "confirmed" ? "Подтверждено" : slot.booking.status === "pending" ? "В ожидании" : slot.booking.status}
                     </p>
                     {slot.booking.status === "pending" && (
@@ -248,7 +250,7 @@ const Bookings = () => {
                 ) : (
                   <>
                     <p className="text-[#4CAF50]">Свободно</p>
-                    <p className="mt-2 text-sm text-[#8E8E93]">Нажмите, чтобы записать</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Нажмите, чтобы записать</p>
                   </>
                 )}
               </CardContent>

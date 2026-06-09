@@ -12,6 +12,8 @@ import {
   VStack,
   Stack,
 } from '@chakra-ui/react';
+import type { LucideIcon } from 'lucide-react';
+import { BarChart3, Calendar, RussianRuble, Users } from 'lucide-react';
 import { adminAPI, bookingsAPI } from '../services/api';
 
 interface ApiBooking {
@@ -113,15 +115,19 @@ const Dashboard = () => {
     );
   }
 
-  const statCards = [
-    { label: 'Записей сегодня', value: stats?.todayBookings ?? 0, icon: '📅' },
-    { label: 'Записей на неделю', value: stats?.weekBookings ?? 0, icon: '📊' },
+  const statCards: {
+    label: string;
+    value: string | number;
+    icon: LucideIcon;
+  }[] = [
+    { label: 'Записей сегодня', value: stats?.todayBookings ?? 0, icon: Calendar },
+    { label: 'Записей на неделю', value: stats?.weekBookings ?? 0, icon: BarChart3 },
     {
       label: 'Доход за месяц',
       value: `${((stats?.monthRevenue ?? 0) / 100).toLocaleString('ru-RU')} ₽`,
-      icon: '💰',
+      icon: RussianRuble,
     },
-    { label: 'Активных клиентов', value: stats?.activeClients ?? 0, icon: '👥' },
+    { label: 'Активных клиентов', value: stats?.activeClients ?? 0, icon: Users },
   ];
 
   return (
@@ -132,10 +138,12 @@ const Dashboard = () => {
       </Text>
 
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={8}>
-        {statCards.map(({ label, value, icon }) => (
+        {statCards.map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardBody>
-              <Text fontSize="2xl" mb={1}>{icon}</Text>
+              <Box mb={2} color="lp.textSecondary">
+                <Icon size={28} strokeWidth={1.75} aria-hidden />
+              </Box>
               <Text fontSize="2xl" fontWeight="bold" color="lp.textPrimary">{value}</Text>
               <Text fontSize="sm" color="lp.textSecondary">{label}</Text>
             </CardBody>

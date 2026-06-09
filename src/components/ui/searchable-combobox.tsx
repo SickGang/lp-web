@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ComboboxOption = {
@@ -105,10 +106,10 @@ export function SearchableCombobox({
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="mb-1 block text-sm text-[#CCCCCC]">{label}</label>
+      <label className="mb-1 block text-sm text-muted-foreground">{label}</label>
       <div
         className={cn(
-          "flex items-center rounded-md border border-[#3A3A3C] bg-[#1C1C1E] transition-colors",
+          "flex items-center rounded-md border border-input bg-background transition-colors",
           open && "border-[#D9E57F]/60 ring-1 ring-[#D9E57F]/30",
           disabled && "opacity-50 cursor-not-allowed",
         )}
@@ -123,7 +124,7 @@ export function SearchableCombobox({
           disabled={disabled}
           value={displayValue}
           placeholder={value ? undefined : placeholder}
-          className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white outline-none placeholder:text-[#6E6E73]"
+          className="flex-1 bg-transparent px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           onFocus={() => !disabled && setOpen(true)}
           onChange={(e) => {
             const next = e.target.value;
@@ -140,7 +141,7 @@ export function SearchableCombobox({
           type="button"
           tabIndex={-1}
           disabled={disabled}
-          className="px-3 text-[#8E8E93] hover:text-white"
+          className="px-3 text-muted-foreground hover:text-foreground"
           onClick={() => {
             if (disabled) return;
             setOpen((o) => !o);
@@ -148,17 +149,11 @@ export function SearchableCombobox({
           }}
           aria-label="Открыть список"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+          <ChevronDown
+            size={16}
+            strokeWidth={2}
             className={cn("transition-transform", open && "rotate-180")}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          />
         </button>
       </div>
 
@@ -166,10 +161,10 @@ export function SearchableCombobox({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-lg border border-[#3A3A3C] bg-[#1C1C1E] py-1 shadow-xl"
+          className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-lg border border-border bg-card py-1 shadow-xl"
         >
           {visible.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-[#8E8E93]">{emptyText}</li>
+            <li className="px-3 py-2 text-sm text-muted-foreground">{emptyText}</li>
           ) : (
             visible.map((opt, index) => (
               <li
@@ -177,9 +172,9 @@ export function SearchableCombobox({
                 role="option"
                 aria-selected={opt.value === value}
                 className={cn(
-                  "cursor-pointer px-3 py-2 text-sm text-[#E5E5EA] transition-colors",
-                  index === highlightIndex && "bg-[#D9E57F]/15 text-white",
-                  opt.value === value && "text-[#D9E57F]",
+                  "cursor-pointer px-3 py-2 text-sm text-foreground transition-colors",
+                  index === highlightIndex && "bg-[#D9E57F]/15 text-foreground",
+                  opt.value === value && "text-[#9ab84a]",
                 )}
                 onMouseEnter={() => setHighlightIndex(index)}
                 onMouseDown={(e) => {
@@ -192,7 +187,7 @@ export function SearchableCombobox({
             ))
           )}
           {hasMore && (
-            <li className="border-t border-[#3A3A3C] px-3 py-2 text-xs text-[#8E8E93]">
+            <li className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
               Показано {maxVisible} из {filtered.length}. Уточните поиск.
             </li>
           )}

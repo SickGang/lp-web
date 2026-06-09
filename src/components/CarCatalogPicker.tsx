@@ -75,7 +75,7 @@ const CarCatalogPicker = ({
   };
 
   if (isLoading) {
-    return <p className="text-sm text-[#8E8E93]">Загрузка каталога авто...</p>;
+    return <p className="text-sm text-muted-foreground">Загрузка каталога авто...</p>;
   }
 
   if (isError) {
