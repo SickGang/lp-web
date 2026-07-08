@@ -70,6 +70,9 @@ export const adminAPI = {
     api.get("/admin/upcoming-bookings", { params: { limit } }),
   getBookingsByDate: (date: string) =>
     api.get("/admin/bookings-by-date", { params: { date } }),
+  getEmployees: () => api.get("/admin/employees"),
+  createEmployee: (data: { name: string }) => api.post("/admin/employees", data),
+  deleteEmployee: (id: number) => api.delete(`/admin/employees/${id}`),
   listClients: (search?: string) =>
     api.get("/admin/clients", { params: search ? { search } : {} }),
   lookupClient: (phone: string) =>
@@ -87,6 +90,7 @@ export const adminAPI = {
     carModel?: string;
     catalogClass?: string;
     notes?: string;
+    employeeId?: number | null;
     confirmImmediately?: boolean;
   }) => api.post("/admin/bookings", data),
 };
@@ -131,8 +135,17 @@ export const bookingsAPI = {
   getAll: () => api.get("/bookings"),
   getOne: (id: number) => api.get(`/bookings/${id}`),
   create: (data: any) => api.post("/bookings", data),
-  updateStatus: (id: number, status: "pending" | "confirmed" | "completed" | "cancelled") =>
-    api.patch(`/bookings/${id}`, { status }),
+  updateStatus: (
+    id: number,
+    status: "pending" | "confirmed" | "completed" | "cancelled",
+    employeeId?: number | null,
+  ) =>
+    api.patch(`/bookings/${id}`, {
+      status,
+      ...(employeeId === undefined ? {} : { employeeId }),
+    }),
+  assignEmployee: (id: number, employeeId: number | null) =>
+    api.patch(`/bookings/${id}`, { employeeId }),
   cancel: (id: number) => api.patch(`/bookings/${id}/cancel`),
 };
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -5,6 +6,7 @@ import {
   Box,
   Button,
   Heading,
+  Select,
   Text,
   SimpleGrid,
   Card,
@@ -25,8 +27,12 @@ interface ApiBooking {
   carDisplay?: string | null;
   user: { name?: string; phone?: string };
   car?: { brand: string; model: string };
+  employeeId?: number | null;
+  employee?: { id: number; name: string } | null;
   selectedServices?: Array<{ service?: { name?: string } }>;
 }
+
+type Employee = { id: number; name: string };
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -56,8 +62,22 @@ const Dashboard = () => {
     retry: 1,
   });
 
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const res = await adminAPI.getEmployees();
+      return res.data as Employee[];
+    },
+    retry: 1,
+  });
+
+  const [employeeSelectionByBookingId, setEmployeeSelectionByBookingId] = useState<
+    Record<number, string>
+  >({});
+
   const confirmBookingMutation = useMutation({
-    mutationFn: async (id: number) => bookingsAPI.updateStatus(id, 'confirmed'),
+    mutationFn: async (payload: { id: number; employeeId: number | null }) =>
+      bookingsAPI.updateStatus(payload.id, 'confirmed', payload.employeeId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['upcoming-bookings'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
@@ -108,9 +128,20 @@ const Dashboard = () => {
       .filter(Boolean)
       .join(', ') || '—',
     notes: booking.notes?.trim() || '',
+    employeeId: booking.employeeId ?? null,
+    employee: booking.employee ?? null,
   }));
 
-  if (statsLoading || bookingsLoading) {
+  const assignEmployeeMutation = useMutation({
+    mutationFn: async (payload: { id: number; employeeId: number | null }) =>
+      bookingsAPI.assignEmployee(payload.id, payload.employeeId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['upcoming-bookings'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+
+  if (statsLoading || bookingsLoading || employeesLoading) {
     return (
       <Box>
         <Heading size="lg" mb={4}>Загрузка...</Heading>
@@ -185,6 +216,36 @@ const Dashboard = () => {
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">
                     Статус: {booking.status === 'pending' ? 'В ожидании' : booking.status === 'confirmed' ? 'Подтверждено' : booking.status}
                   </Text>
+                  <Text mt={1} fontSize="sm" color="lp.textSecondary">
+                    Сотрудник: {booking.employee?.name ?? 'Не назначен'}
+                  </Text>
+
+                  <Select
+                    size="sm"
+                    mt={2}
+                    value={
+                      employeeSelectionByBookingId[booking.id] ??
+                      (booking.employeeId == null ? "" : String(booking.employeeId))
+                    }
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setEmployeeSelectionByBookingId((prev) => ({ ...prev, [booking.id]: next }));
+
+                      // В статусе "confirmed" можно пере назначать сразу.
+                      if (booking.status === "confirmed") {
+                        const employeeId = next === "" ? null : Number(next);
+                        assignEmployeeMutation.mutate({ id: booking.id, employeeId });
+                      }
+                    }}
+                    disabled={employeesLoading}
+                  >
+                    <option value="">Без назначения</option>
+                    {employees.map((e) => (
+                      <option key={e.id} value={String(e.id)}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </Select>
                   {booking.notes && (
                     <Text mt={1} fontSize="sm" color="lp.textMuted">
                       Комментарий: {booking.notes}
@@ -196,7 +257,13 @@ const Dashboard = () => {
                     <Button
                       size="sm"
                       className="w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
-                      onClick={() => confirmBookingMutation.mutate(booking.id)}
+                      onClick={() => {
+                        const next =
+                          employeeSelectionByBookingId[booking.id] ??
+                          (booking.employeeId == null ? "" : String(booking.employeeId));
+                        const employeeId = next === "" ? null : Number(next);
+                        confirmBookingMutation.mutate({ id: booking.id, employeeId });
+                      }}
                       isLoading={confirmBookingMutation.isPending}
                     >
                       {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}

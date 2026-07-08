@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
+import { addDays, format, startOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { adminAPI, bookingsAPI } from '../services/api';
 import AdminCreateBookingModal from '@/components/AdminCreateBookingModal';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+
+type Employee = { id: number; name: string };
 
 interface TimeSlot {
   startTime: string;
@@ -20,6 +22,8 @@ interface TimeSlot {
     services: string;
     phone: string;
     notes?: string;
+    employeeId?: number | null;
+    employee?: { id: number; name: string } | null;
   };
 }
 
@@ -50,7 +54,7 @@ const intervalsOverlap = (
   return s1 < e2 && e1 > s2;
 };
 
-/** Слот недоступен, если дата в прошлом или сегодня и время начала слота уже наступило (локальное время). */
+/** Для отображения: определяем, что слот уже прошёл (локальное время). */
 const isSlotPast = (date: Date, slotStartTime: string, now: Date): boolean => {
   const todayKey = format(now, 'yyyy-MM-dd');
   const selectedKey = format(date, 'yyyy-MM-dd');
@@ -63,16 +67,50 @@ const isSlotPast = (date: Date, slotStartTime: string, now: Date): boolean => {
 const Bookings = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [createSlot, setCreateSlot] = useState<{ startTime: string; endTime: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [createSlot, setCreateSlot] = useState<{
+    dateKey: string;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
   const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
   const dateKey = format(selectedDate, 'yyyy-MM-dd');
+
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const res = await adminAPI.getEmployees();
+      return res.data as Employee[];
+    },
+    retry: 1,
+  });
+
+  const [employeeSelectionByBookingId, setEmployeeSelectionByBookingId] = useState<
+    Record<number, string>
+  >({});
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(timer);
   }, []);
-  
+
+  const weekStart = useMemo(
+    () => startOfWeek(selectedDate, { weekStartsOn: 1 }), // Пн
+    [selectedDate],
+  );
+  const weekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
+
+  const weekDateKeys = useMemo(
+    () => weekDates.map((d) => format(d, 'yyyy-MM-dd')),
+    [weekDates],
+  );
+
+  const calendarSelected = viewMode === 'week' ? weekStart : selectedDate;
+
   const { data: bookingsData, isLoading, isError } = useQuery({
     queryKey: ['bookings-by-date', dateKey],
     queryFn: async () => {
@@ -80,10 +118,25 @@ const Bookings = () => {
       return response.data;
     },
     retry: 1,
+    enabled: viewMode === 'day',
   });
 
-  const generateTimeSlots = (): TimeSlot[] => {
-    const raw = bookingsData;
+  const weekQueries = useQueries({
+    queries: weekDateKeys.map((key) => ({
+      queryKey: ['bookings-by-date', key],
+      queryFn: async () => {
+        const response = await adminAPI.getBookingsByDate(key);
+        return response.data;
+      },
+      retry: 1,
+      enabled: viewMode === 'week',
+    })),
+  });
+
+  const isWeekLoading = viewMode === 'week' && weekQueries.some((q) => q.isLoading);
+  const isWeekError = viewMode === 'week' && weekQueries.some((q) => q.isError);
+
+  const generateTimeSlots = (raw: any): TimeSlot[] => {
     const bookings = Array.isArray(raw)
       ? raw
       : (raw as { data?: any[] })?.data ?? (raw as { bookings?: any[] })?.bookings ?? [];
@@ -133,41 +186,47 @@ const Bookings = () => {
           services: services || '—',
           phone: guestPhone || user.phone || '—',
           notes: typeof booking.notes === 'string' ? booking.notes.trim() : '',
+          employeeId: booking.employeeId ?? null,
+          employee: booking.employee ?? null,
         },
       };
     });
   };
 
-  const timeSlots = isLoading ? [] : generateTimeSlots();
+  const timeSlots = isLoading ? [] : generateTimeSlots(bookingsData);
 
   const cancelBookingMutation = useMutation({
-    mutationFn: async (id: number) => bookingsAPI.cancel(id),
-    onSuccess: async () => {
+    mutationFn: async (payload: { id: number; dateKey: string }) => {
+      return bookingsAPI.cancel(payload.id);
+    },
+    onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({
-        queryKey: ['bookings-by-date', dateKey],
+        queryKey: ['bookings-by-date', variables.dateKey],
       });
     },
   });
 
   const confirmBookingMutation = useMutation({
-    mutationFn: async (id: number) => bookingsAPI.updateStatus(id, "confirmed"),
-    onSuccess: async () => {
+    mutationFn: async (payload: { id: number; dateKey: string; employeeId: number | null }) => {
+      return bookingsAPI.updateStatus(payload.id, 'confirmed', payload.employeeId);
+    },
+    onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({
-        queryKey: ['bookings-by-date', dateKey],
+        queryKey: ['bookings-by-date', variables.dateKey],
       });
     },
   });
 
-  const invalidateBookings = () => {
-    queryClient.invalidateQueries({ queryKey: ['bookings-by-date', dateKey] });
+  const invalidateBookings = (key: string) => {
+    queryClient.invalidateQueries({ queryKey: ['bookings-by-date', key] });
   };
 
-  const handleCancelBooking = async (bookingId: number) => {
+  const handleCancelBooking = async (bookingId: number, forDateKey: string) => {
     const isConfirmed = window.confirm('Отменить это бронирование?');
     if (!isConfirmed) return;
 
     try {
-      await cancelBookingMutation.mutateAsync(bookingId);
+      await cancelBookingMutation.mutateAsync({ id: bookingId, dateKey: forDateKey });
     } catch (error) {
       console.error('Failed to cancel booking:', error);
       window.alert('Не удалось отменить бронирование. Попробуйте снова.');
@@ -182,12 +241,19 @@ const Bookings = () => {
         <CardContent className="p-2">
           <Calendar
             mode="single"
-            selected={selectedDate}
+            selected={calendarSelected}
             month={calendarMonth}
             onMonthChange={setCalendarMonth}
             onSelect={(date) => {
               if (date) {
-                setSelectedDate(date);
+                if (viewMode === 'week') {
+                  // В режиме "Неделя" выбираем неделю, а не конкретный день:
+                  // фиксируем якорь на начало недели (Пн).
+                  const nextWeekStart = startOfWeek(date, { weekStartsOn: 1 });
+                  setSelectedDate(nextWeekStart);
+                } else {
+                  setSelectedDate(date);
+                }
                 setCalendarMonth(date);
               }
             }}
@@ -196,104 +262,362 @@ const Bookings = () => {
         </CardContent>
       </Card>
 
-      <h2 className="mb-4 text-3xl font-semibold text-foreground">
-        Слоты на {format(selectedDate, 'd MMMM', { locale: ru })}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant={viewMode === 'day' ? 'default' : 'outline'}
+          className={viewMode === 'day' ? 'bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b]' : ''}
+          onClick={() => setViewMode('day')}
+        >
+          День
+        </Button>
+        <Button
+          size="sm"
+          variant={viewMode === 'week' ? 'default' : 'outline'}
+          className={viewMode === 'week' ? 'bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b]' : ''}
+          onClick={() => setViewMode('week')}
+        >
+          Неделя
+        </Button>
+      </div>
+
+      <h2 className="mb-6 text-3xl font-semibold text-foreground">
+        {viewMode === 'day' ? (
+          <>Слоты на {format(selectedDate, 'd MMMM', { locale: ru })}</>
+        ) : (
+          <>
+            Слоты на неделе ({format(weekStart, 'd MMMM', { locale: ru })} –{' '}
+            {format(addDays(weekStart, 6), 'd MMMM', { locale: ru })})
+          </>
+        )}
       </h2>
 
-      {isLoading ? (
+      {viewMode === 'day' && (isLoading || employeesLoading) ? (
         <p className="text-muted-foreground">Загрузка...</p>
-      ) : isError ? (
+      ) : viewMode === 'day' && isError ? (
         <p className="text-red-500">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
-      ) : (
+      ) : viewMode === 'day' ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {timeSlots.map((slot) => {
             const isPast = !slot.booking && isSlotPast(selectedDate, slot.startTime, now);
-            const isSelectable = !slot.booking && !isPast;
+            const isSelectable = !slot.booking;
 
             return (
-            <Card
-              key={slot.startTime}
-              role={isSelectable ? 'button' : undefined}
-              tabIndex={isSelectable ? 0 : undefined}
-              onClick={() => {
-                if (isSelectable) {
-                  setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
-                }
-              }}
-              onKeyDown={(e) => {
-                if (isSelectable && (e.key === 'Enter' || e.key === ' ')) {
-                  e.preventDefault();
-                  setCreateSlot({ startTime: slot.startTime, endTime: slot.endTime });
-                }
-              }}
-              className={cn(
-                'rounded-2xl',
-                slot.booking
-                  ? 'border-muted-foreground/50'
-                  : isPast
-                    ? 'cursor-not-allowed opacity-50'
+              <Card
+                key={slot.startTime}
+                role={isSelectable ? 'button' : undefined}
+                tabIndex={isSelectable ? 0 : undefined}
+                onClick={() => {
+                  if (isSelectable) {
+                    setCreateSlot({
+                      dateKey,
+                      startTime: slot.startTime,
+                      endTime: slot.endTime,
+                    });
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (isSelectable && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    setCreateSlot({
+                      dateKey,
+                      startTime: slot.startTime,
+                      endTime: slot.endTime,
+                    });
+                  }
+                }}
+                className={cn(
+                  'rounded-2xl',
+                  slot.booking
+                    ? 'border-muted-foreground/50'
                     : 'cursor-pointer hover:border-[#D9E57F]/50',
-              )}
-            >
-              <CardContent className="p-4">
-                <p className="mb-3 text-xl font-bold text-foreground">{slot.startTime} - {slot.endTime}</p>
-                {slot.booking ? (
-                  <div className="text-sm">
-                    <p className="font-semibold text-foreground">{slot.booking.client}</p>
-                    <p className="text-muted-foreground">{slot.booking.phone}</p>
-                    <p className="text-muted-foreground">{slot.booking.car}</p>
-                    <p className="mb-2 text-muted-foreground">{slot.booking.services}</p>
-                    {slot.booking.notes && (
-                      <p className="mb-2 text-muted-foreground">Комментарий: {slot.booking.notes}</p>
-                    )}
-                    <p className="mb-2 text-muted-foreground">
-                      Статус: {slot.booking.status === "confirmed" ? "Подтверждено" : slot.booking.status === "pending" ? "В ожидании" : slot.booking.status}
-                    </p>
-                    {slot.booking.status === "pending" && (
-                      <Button
-                        size="sm"
-                        className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
-                        onClick={() => confirmBookingMutation.mutate(slot.booking!.id)}
-                        disabled={confirmBookingMutation.isPending}
-                      >
-                        {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
-                      onClick={() => handleCancelBooking(slot.booking!.id)}
-                      disabled={cancelBookingMutation.isPending}
-                    >
-                      {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
-                    </Button>
-                  </div>
-                ) : isPast ? (
-                  <>
-                    <p className="text-muted-foreground">Время прошло</p>
-                    <p className="mt-2 text-sm text-muted-foreground">Запись недоступна</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[#4CAF50]">Свободно</p>
-                    <p className="mt-2 text-sm text-muted-foreground">Нажмите, чтобы записать</p>
-                  </>
                 )}
-              </CardContent>
-            </Card>
-          );
+              >
+                <CardContent className="p-4">
+                  <p className="mb-3 text-xl font-bold text-foreground">
+                    {slot.startTime} - {slot.endTime}
+                  </p>
+                  {slot.booking ? (
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground">{slot.booking.client}</p>
+                      <p className="text-muted-foreground">{slot.booking.phone}</p>
+                      <p className="text-muted-foreground">{slot.booking.car}</p>
+                      <p className="mb-2 text-muted-foreground">{slot.booking.services}</p>
+                      {slot.booking.notes && (
+                        <p className="mb-2 text-muted-foreground">Комментарий: {slot.booking.notes}</p>
+                      )}
+                      <p className="mb-2 text-muted-foreground">
+                        Статус:{' '}
+                        {slot.booking.status === 'confirmed'
+                          ? 'Подтверждено'
+                          : slot.booking.status === 'pending'
+                            ? 'В ожидании'
+                            : slot.booking.status}
+                      </p>
+                      {slot.booking.status === 'pending' && (
+                        <Button
+                          size="sm"
+                          className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                          onClick={() =>
+                            confirmBookingMutation.mutate({
+                              id: slot.booking!.id,
+                              dateKey,
+                              employeeId:
+                                employeeSelectionByBookingId[slot.booking!.id] === undefined
+                                  ? slot.booking!.employeeId ?? null
+                                  : employeeSelectionByBookingId[slot.booking!.id] === ""
+                                    ? null
+                                    : Number(employeeSelectionByBookingId[slot.booking!.id]),
+                            })
+                          }
+                          disabled={confirmBookingMutation.isPending}
+                        >
+                          {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
+                        </Button>
+                      )}
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="flex-1">
+                          <label className="mb-1 block text-xs text-muted-foreground">
+                            Сотрудник
+                          </label>
+                          <select
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#D9E57F]/60 focus:ring-1 focus:ring-[#D9E57F]/30 disabled:opacity-50"
+                            value={
+                              employeeSelectionByBookingId[slot.booking!.id] ??
+                              (slot.booking!.employeeId == null
+                                ? ""
+                                : String(slot.booking!.employeeId))
+                            }
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setEmployeeSelectionByBookingId((prev) => ({
+                                ...prev,
+                                [slot.booking!.id]: next,
+                              }));
+                            }}
+                            disabled={employeesLoading}
+                            aria-label="Выбор сотрудника"
+                          >
+                            <option value="">Без назначения</option>
+                            {employees.map((e) => (
+                              <option key={e.id} value={String(e.id)}>
+                                {e.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                          onClick={() => handleCancelBooking(slot.booking!.id, dateKey)}
+                          disabled={cancelBookingMutation.isPending}
+                        >
+                          {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isPast ? (
+                    <>
+                      <p className="text-[#4CAF50]">Свободно</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Время прошло — админ может записать
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[#4CAF50]">Свободно</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Нажмите, чтобы записать
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            );
           })}
         </div>
+      ) : (
+        <>
+          {isWeekLoading || employeesLoading ? (
+            <p className="text-muted-foreground">Загрузка...</p>
+          ) : isWeekError ? (
+            <p className="text-red-500">Ошибка загрузки данных. Убедитесь, что API сервер запущен.</p>
+          ) : (
+            <div className="space-y-6">
+              {weekDates.map((day, idx) => {
+                const dayKey = weekDateKeys[idx];
+                const dayRaw = weekQueries[idx]?.data;
+                const daySlots = dayRaw ? generateTimeSlots(dayRaw) : [];
+
+                return (
+                  <div key={dayKey}>
+                    <h3 className="mb-3 text-xl font-semibold text-foreground">
+                      {format(day, 'd MMMM', { locale: ru })}
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {daySlots.map((slot) => {
+                        const isPast = !slot.booking && isSlotPast(day, slot.startTime, now);
+                        const isSelectable = !slot.booking;
+
+                        return (
+                          <Card
+                            key={`${dayKey}_${slot.startTime}`}
+                            role={isSelectable ? 'button' : undefined}
+                            tabIndex={isSelectable ? 0 : undefined}
+                            onClick={() => {
+                              if (isSelectable) {
+                                setCreateSlot({
+                                  dateKey: dayKey,
+                                  startTime: slot.startTime,
+                                  endTime: slot.endTime,
+                                });
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (isSelectable && (e.key === 'Enter' || e.key === ' ')) {
+                                e.preventDefault();
+                                setCreateSlot({
+                                  dateKey: dayKey,
+                                  startTime: slot.startTime,
+                                  endTime: slot.endTime,
+                                });
+                              }
+                            }}
+                            className={cn(
+                              'rounded-2xl',
+                              slot.booking
+                                ? 'border-muted-foreground/50'
+                                : 'cursor-pointer hover:border-[#D9E57F]/50',
+                            )}
+                          >
+                            <CardContent className="p-4">
+                              <p className="mb-3 text-xl font-bold text-foreground">
+                                {slot.startTime} - {slot.endTime}
+                              </p>
+                              {slot.booking ? (
+                                <div className="text-sm">
+                                  <p className="font-semibold text-foreground">
+                                    {slot.booking.client}
+                                  </p>
+                                  <p className="text-muted-foreground">{slot.booking.phone}</p>
+                                  <p className="text-muted-foreground">{slot.booking.car}</p>
+                                  <p className="mb-2 text-muted-foreground">
+                                    {slot.booking.services}
+                                  </p>
+                                  {slot.booking.notes && (
+                                    <p className="mb-2 text-muted-foreground">
+                                      Комментарий: {slot.booking.notes}
+                                    </p>
+                                  )}
+                                  <p className="mb-2 text-muted-foreground">
+                                    Статус:{' '}
+                                    {slot.booking.status === 'confirmed'
+                                      ? 'Подтверждено'
+                                      : slot.booking.status === 'pending'
+                                        ? 'В ожидании'
+                                        : slot.booking.status}
+                                  </p>
+                                  {slot.booking.status === 'pending' && (
+                                    <Button
+                                      size="sm"
+                                      className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                                      onClick={() =>
+                                        confirmBookingMutation.mutate({
+                                          id: slot.booking!.id,
+                                          dateKey: dayKey,
+                                          employeeId:
+                                            employeeSelectionByBookingId[slot.booking!.id] === undefined
+                                              ? slot.booking!.employeeId ?? null
+                                              : employeeSelectionByBookingId[slot.booking!.id] === ""
+                                                ? null
+                                                : Number(employeeSelectionByBookingId[slot.booking!.id]),
+                                        })
+                                      }
+                                      disabled={confirmBookingMutation.isPending}
+                                    >
+                                      {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
+                                    </Button>
+                                  )}
+                                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                                    <div className="flex-1">
+                                      <label className="mb-1 block text-xs text-muted-foreground">
+                                        Сотрудник
+                                      </label>
+                                      <select
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-[#D9E57F]/60 focus:ring-1 focus:ring-[#D9E57F]/30 disabled:opacity-50"
+                                        value={
+                                          employeeSelectionByBookingId[slot.booking!.id] ??
+                                          (slot.booking!.employeeId == null
+                                            ? ""
+                                            : String(slot.booking!.employeeId))
+                                        }
+                                        onChange={(e) => {
+                                          const next = e.target.value;
+                                          setEmployeeSelectionByBookingId((prev) => ({
+                                            ...prev,
+                                            [slot.booking!.id]: next,
+                                          }));
+                                        }}
+                                        disabled={employeesLoading}
+                                        aria-label="Выбор сотрудника"
+                                      >
+                                        <option value="">Без назначения</option>
+                                        {employees.map((e) => (
+                                          <option key={e.id} value={String(e.id)}>
+                                            {e.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/10 sm:w-auto"
+                                      onClick={() => handleCancelBooking(slot.booking!.id, dayKey)}
+                                      disabled={cancelBookingMutation.isPending}
+                                    >
+                                      {cancelBookingMutation.isPending ? 'Отмена...' : 'Отменить'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : isPast ? (
+                                <>
+                                  <p className="text-[#4CAF50]">Свободно</p>
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    Время прошло — админ может записать
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-[#4CAF50]">Свободно</p>
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    Нажмите, чтобы записать
+                                  </p>
+                                </>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {createSlot && (
         <AdminCreateBookingModal
-          date={dateKey}
+          date={createSlot.dateKey}
           slotStart={createSlot.startTime}
           slotEnd={createSlot.endTime}
           onClose={() => setCreateSlot(null)}
-          onSuccess={invalidateBookings}
+          onSuccess={() => invalidateBookings(createSlot.dateKey)}
         />
       )}
     </div>

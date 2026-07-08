@@ -66,6 +66,7 @@ const AdminCreateBookingModal = ({
   const [clientSearchInput, setClientSearchInput] = useState("");
   const [clientSearch, setClientSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | "">("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | "">("");
   const [phone, setPhone] = useState("");
   const [clientName, setClientName] = useState("");
   const [carId, setCarId] = useState<number | "">("");
@@ -106,6 +107,30 @@ const AdminCreateBookingModal = ({
       return (res.data ?? []) as ClientListItem[];
     },
   });
+
+  type Employee = { id: number; name: string };
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const res = await adminAPI.getEmployees();
+      return (res.data ?? []) as Employee[];
+    },
+  });
+
+  const employeeOptions = useMemo(
+    () =>
+      employees.map((e) => ({
+        value: String(e.id),
+        label: e.name,
+      })),
+    [employees],
+  );
+
+  const selectedEmployeeLabel = useMemo(() => {
+    if (selectedEmployeeId === "") return undefined;
+    const e = employees.find((x) => x.id === selectedEmployeeId);
+    return e?.name;
+  }, [employees, selectedEmployeeId]);
 
   const selectedClient = useMemo(
     () => clients.find((c) => c.id === selectedUserId),
@@ -205,8 +230,14 @@ const AdminCreateBookingModal = ({
         serviceIds,
         date,
         slotStart,
-        confirmImmediately: true,
+        // Если сотрудник не выбран — создаём запись в статусе "pending",
+        // чтобы позже можно было "взять в работу" и назначить сотрудника.
+        confirmImmediately: selectedEmployeeId !== "",
       };
+
+      if (selectedEmployeeId !== "") {
+        payload.employeeId = selectedEmployeeId;
+      }
 
       if (mode === "existing") {
         if (selectedUserId === "") {
@@ -408,6 +439,18 @@ const AdminCreateBookingModal = ({
               />
             </>
           )}
+
+          <SearchableCombobox
+            label="Сотрудник"
+            placeholder={employeesLoading ? "Загрузка..." : "Не назначен (по желанию)"}
+            options={employeeOptions}
+            value={selectedEmployeeId === "" ? "" : String(selectedEmployeeId)}
+            selectedLabel={selectedEmployeeLabel}
+            onChange={(id) => {
+              setSelectedEmployeeId(id === "" ? "" : Number(id));
+            }}
+            emptyText={employeesLoading ? "Загрузка..." : "Сотрудники не найдены"}
+          />
 
           <div>
             <label className="mb-2 block text-sm text-muted-foreground">Услуги</label>

@@ -7,6 +7,7 @@ import Chemistry from './pages/Chemistry';
 import ServicesPage from './pages/Services';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import Employees from './pages/Employees';
 import { useAuth } from './hooks/useAuth';
 import { useAuthHydrated } from './hooks/useAuthHydrated';
 
@@ -52,6 +53,16 @@ function App() {
           element={
             user?.role === 'OWNER' ? (
               <ServicesPage />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="employees"
+          element={
+            user?.role !== 'CLIENT' ? (
+              <Employees />
             ) : (
               <Navigate to="/dashboard" replace />
             )
