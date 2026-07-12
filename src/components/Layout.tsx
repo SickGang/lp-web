@@ -17,24 +17,89 @@ import {
 } from "@chakra-ui/react";
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   CalendarDays,
   Car,
-  FlaskConical,
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
   Settings,
   Users,
   UserCog,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { formatRuPhoneDisplay } from "@/lib/ruPhoneMask";
 
 type NavItem = {
   to: string;
   label: string;
   icon: LucideIcon;
 };
+
+function getRoleLabel(role: "CLIENT" | "ADMIN" | "OWNER" | undefined): string {
+  switch (role) {
+    case "OWNER":
+      return "Владелец";
+    case "ADMIN":
+      return "Администратор";
+    case "CLIENT":
+      return "Клиент";
+    default:
+      return "";
+  }
+}
+
+type AuthUser = {
+  id: number;
+  phone: string;
+  name?: string;
+  role: "CLIENT" | "ADMIN" | "OWNER";
+};
+
+function AuthUserInfo({ user, compact = false }: { user: AuthUser; compact?: boolean }) {
+  const displayName = user.name?.trim() || "Без имени";
+  const phone = user.phone ? formatRuPhoneDisplay(user.phone) : "";
+  const roleLabel = getRoleLabel(user.role);
+
+  if (compact) {
+    return (
+      <Box>
+        <Text fontSize="xs" color="lp.textMuted">
+          Вы вошли как
+        </Text>
+        <Text fontSize="sm" fontWeight="semibold" color="lp.textPrimary" lineHeight="short">
+          {displayName}
+        </Text>
+        <Text fontSize="xs" color="lp.textSecondary">
+          {[phone, roleLabel].filter(Boolean).join(" · ")}
+        </Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      px={3}
+      py={2.5}
+      borderRadius="md"
+      bg="lp.input"
+      borderWidth="1px"
+      borderColor="lp.border"
+    >
+      <Text fontSize="xs" color="lp.textMuted" mb={0.5}>
+        Вы вошли как
+      </Text>
+      <Text fontSize="sm" fontWeight="semibold" color="lp.textPrimary">
+        {displayName}
+      </Text>
+      <Text fontSize="xs" color="lp.textSecondary" mt={0.5}>
+        {[phone, roleLabel].filter(Boolean).join(" · ")}
+      </Text>
+    </Box>
+  );
+}
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -56,9 +121,10 @@ const Layout = () => {
       ? [
           { to: "/users", label: "Пользователи", icon: Users },
           { to: "/services", label: "Услуги", icon: Car },
+          { to: "/reports", label: "Отчёты", icon: BarChart3 },
         ]
       : []),
-    { to: "/chemistry", label: "Учет химии", icon: FlaskConical },
+    { to: "/production", label: "Склад", icon: Package },
     { to: "/settings", label: "Настройки", icon: Settings },
   ];
 
@@ -106,10 +172,10 @@ const Layout = () => {
           zIndex={20}
         >
           <Box>
-            <Heading size="sm">LP Detailing</Heading>
-            <Text fontSize="xs" color="lp.textMuted">
-              {user?.name || user?.phone}
-            </Text>
+            <Heading size="sm" mb={user ? 2 : 0}>
+              LP Detailing
+            </Heading>
+            {user && <AuthUserInfo user={user} compact />}
           </Box>
           <Button
             aria-label="Открыть меню"
@@ -158,15 +224,10 @@ const Layout = () => {
       >
         <VStack align="stretch" spacing={6} flex={1}>
           <Box>
-            <Heading size="md" mb={2}>
+            <Heading size="md" mb={3}>
               LP Detailing
             </Heading>
-            <Text fontSize="sm" color="lp.textSecondary">
-              {user?.name || user?.phone}
-            </Text>
-            <Text fontSize="xs" color="lp.textMuted">
-              {user?.role === "OWNER" ? "Владелец" : "Администратор"}
-            </Text>
+            {user && <AuthUserInfo user={user} />}
           </Box>
           {nav}
         </VStack>

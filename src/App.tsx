@@ -3,11 +3,12 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Bookings from './pages/Bookings';
 import Users from './pages/Users';
-import Chemistry from './pages/Chemistry';
+import Production from './pages/Production';
 import ServicesPage from './pages/Services';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Employees from './pages/Employees';
+import Reports from './pages/Reports';
 import { useAuth } from './hooks/useAuth';
 import { useAuthHydrated } from './hooks/useAuthHydrated';
 
@@ -59,6 +60,16 @@ function App() {
           }
         />
         <Route
+          path="reports"
+          element={
+            user?.role === 'OWNER' ? (
+              <Reports />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
           path="employees"
           element={
             user?.role !== 'CLIENT' ? (
@@ -68,7 +79,8 @@ function App() {
             )
           }
         />
-        <Route path="chemistry" element={<Chemistry />} />
+        <Route path="production" element={<Production />} />
+        <Route path="chemistry" element={<Navigate to="/production" replace />} />
         <Route path="settings" element={<Settings />} />
       </Route>
       <Route

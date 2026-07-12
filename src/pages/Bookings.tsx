@@ -4,10 +4,13 @@ import { addDays, format, startOfWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { adminAPI, bookingsAPI } from '../services/api';
 import AdminCreateBookingModal from '@/components/AdminCreateBookingModal';
+import CloseOrderModal from '@/components/CloseOrderModal';
+import ClientDepositModal from '@/components/ClientDepositModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { getBookingStatusLabel } from '@/lib/bookingStatus';
 
 type Employee = { id: number; name: string };
 
@@ -17,6 +20,7 @@ interface TimeSlot {
   booking?: {
     id: number;
     status: string;
+    closeStatus?: string;
     client: string;
     car: string;
     services: string;
@@ -73,6 +77,11 @@ const Bookings = () => {
     startTime: string;
     endTime: string;
   } | null>(null);
+  const [closeBooking, setCloseBooking] = useState<{
+    id: number;
+    dateKey: string;
+  } | null>(null);
+  const [showDepositModal, setShowDepositModal] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const queryClient = useQueryClient();
   const dateKey = format(selectedDate, 'yyyy-MM-dd');
@@ -176,6 +185,7 @@ const Bookings = () => {
         booking: {
           id: booking.id,
           status: booking.status || "pending",
+          closeStatus: booking.closeStatus ?? "OPEN",
           client:
             guestName ||
             user.name ||
@@ -279,6 +289,13 @@ const Bookings = () => {
         >
           Неделя
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowDepositModal(true)}
+        >
+          Депозит клиента
+        </Button>
       </div>
 
       <h2 className="mb-6 text-3xl font-semibold text-foreground">
@@ -347,12 +364,7 @@ const Bookings = () => {
                         <p className="mb-2 text-muted-foreground">Комментарий: {slot.booking.notes}</p>
                       )}
                       <p className="mb-2 text-muted-foreground">
-                        Статус:{' '}
-                        {slot.booking.status === 'confirmed'
-                          ? 'Подтверждено'
-                          : slot.booking.status === 'pending'
-                            ? 'В ожидании'
-                            : slot.booking.status}
+                        Статус: {getBookingStatusLabel(slot.booking.status)}
                       </p>
                       {slot.booking.status === 'pending' && (
                         <Button
@@ -375,6 +387,19 @@ const Bookings = () => {
                           {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
                         </Button>
                       )}
+                      {slot.booking.status === 'confirmed' &&
+                        slot.booking.closeStatus !== 'CLOSED' && (
+                          <Button
+                            size="sm"
+                            className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCloseBooking({ id: slot.booking!.id, dateKey });
+                            }}
+                          >
+                            Закрыть заказ
+                          </Button>
+                        )}
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div className="flex-1">
                           <label className="mb-1 block text-xs text-muted-foreground">
@@ -512,12 +537,7 @@ const Bookings = () => {
                                     </p>
                                   )}
                                   <p className="mb-2 text-muted-foreground">
-                                    Статус:{' '}
-                                    {slot.booking.status === 'confirmed'
-                                      ? 'Подтверждено'
-                                      : slot.booking.status === 'pending'
-                                        ? 'В ожидании'
-                                        : slot.booking.status}
+                                    Статус: {getBookingStatusLabel(slot.booking.status)}
                                   </p>
                                   {slot.booking.status === 'pending' && (
                                     <Button
@@ -540,6 +560,19 @@ const Bookings = () => {
                                       {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
                                     </Button>
                                   )}
+                                  {slot.booking.status === 'confirmed' &&
+                                    slot.booking.closeStatus !== 'CLOSED' && (
+                                      <Button
+                                        size="sm"
+                                        className="mb-2 mr-2 w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCloseBooking({ id: slot.booking!.id, dateKey: dayKey });
+                                        }}
+                                      >
+                                        Закрыть заказ
+                                      </Button>
+                                    )}
                                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
                                     <div className="flex-1">
                                       <label className="mb-1 block text-xs text-muted-foreground">
@@ -618,6 +651,24 @@ const Bookings = () => {
           slotEnd={createSlot.endTime}
           onClose={() => setCreateSlot(null)}
           onSuccess={() => invalidateBookings(createSlot.dateKey)}
+        />
+      )}
+
+      {closeBooking && (
+        <CloseOrderModal
+          bookingId={closeBooking.id}
+          onClose={() => setCloseBooking(null)}
+          onSuccess={() => {
+            invalidateBookings(closeBooking.dateKey);
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          }}
+        />
+      )}
+
+      {showDepositModal && (
+        <ClientDepositModal
+          onClose={() => setShowDepositModal(false)}
+          onSuccess={() => setShowDepositModal(false)}
         />
       )}
     </div>

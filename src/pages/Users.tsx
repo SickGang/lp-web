@@ -28,6 +28,7 @@ import {
 } from '@chakra-ui/react';
 import { Trash2, UserPlus } from 'lucide-react';
 import { usersAPI } from '../services/api';
+import ClientDepositModal from '../components/ClientDepositModal';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../hooks/useAuth';
 
@@ -38,6 +39,7 @@ interface User {
   role: 'CLIENT' | 'ADMIN' | 'OWNER';
   createdAt: string;
   bookingsCount: number;
+  depositBalance: number;
 }
 
 const Users = () => {
@@ -58,6 +60,7 @@ const Users = () => {
   const roleModal = useDisclosure();
   const [roleTargetUser, setRoleTargetUser] = useState<User | null>(null);
   const [nextRole, setNextRole] = useState<NonOwnerRole>('ADMIN');
+  const [depositTarget, setDepositTarget] = useState<User | null>(null);
 
   const { data: usersData, isLoading, isError } = useQuery({
     queryKey: ['users', roleFilter],
@@ -96,6 +99,7 @@ const Users = () => {
       role: user.role,
       createdAt: user.createdAt,
       bookingsCount: user._count?.bookings || 0,
+      depositBalance: user.clientAccount?.balance ?? 0,
     })) ?? [];
 
   const getRoleLabel = (role: string) => {
@@ -179,6 +183,7 @@ const Users = () => {
                 <Th color="lp.textMuted">Роль</Th>
                 <Th color="lp.textMuted">Дата регистрации</Th>
                 <Th color="lp.textMuted">Записей</Th>
+                <Th color="lp.textMuted">Депозит</Th>
                 <Th color="lp.textMuted">Действия</Th>
               </Tr>
             </Thead>
@@ -194,9 +199,24 @@ const Users = () => {
                   </Td>
                   <Td color="lp.textSecondary">{new Date(user.createdAt).toLocaleDateString('ru-RU')}</Td>
                   <Td color="lp.textSecondary">{user.bookingsCount}</Td>
+                  <Td color="lp.textSecondary">
+                    {user.role === 'CLIENT' && user.phone !== 'Не указан'
+                      ? `${(user.depositBalance / 100).toLocaleString('ru-RU')} ₽`
+                      : '—'}
+                  </Td>
                   <Td>
                     {user.role !== 'OWNER' && (
                       <HStack spacing={2}>
+                        {user.role === 'CLIENT' && user.phone !== 'Не указан' && (
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="border-[#D9E57F] text-[#D9E57F] hover:bg-[#D9E57F]/10"
+                            onClick={() => setDepositTarget(user)}
+                          >
+                            Депозит
+                          </Button>
+                        )}
                         <Button
                           size="xs"
                           variant="outline"
@@ -319,6 +339,17 @@ const Users = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {depositTarget && depositTarget.phone !== 'Не указан' && (
+        <ClientDepositModal
+          phone={depositTarget.phone}
+          clientName={depositTarget.name}
+          onClose={() => setDepositTarget(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+          }}
+        />
+      )}
     </Box>
   );
 };

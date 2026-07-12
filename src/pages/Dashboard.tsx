@@ -17,15 +17,20 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { BarChart3, Calendar, RussianRuble, Users } from 'lucide-react';
 import { adminAPI, bookingsAPI } from '../services/api';
+import { getBookingStatusLabel } from '../lib/bookingStatus';
+import CloseOrderModal from '../components/CloseOrderModal';
 
 interface ApiBooking {
   id: number;
   startTime: string;
   endTime: string;
   status: string;
+  closeStatus?: string;
   notes?: string | null;
   carDisplay?: string | null;
-  user: { name?: string; phone?: string };
+  guestName?: string | null;
+  guestPhone?: string | null;
+  user?: { name?: string; phone?: string } | null;
   car?: { brand: string; model: string };
   employeeId?: number | null;
   employee?: { id: number; name: string } | null;
@@ -74,6 +79,7 @@ const Dashboard = () => {
   const [employeeSelectionByBookingId, setEmployeeSelectionByBookingId] = useState<
     Record<number, string>
   >({});
+  const [closeBookingId, setCloseBookingId] = useState<number | null>(null);
 
   const confirmBookingMutation = useMutation({
     mutationFn: async (payload: { id: number; employeeId: number | null }) =>
@@ -115,9 +121,15 @@ const Dashboard = () => {
   const upcomingBookings = rawBookings.map((booking: ApiBooking) => ({
     id: booking.id,
     status: booking.status,
+    closeStatus: booking.closeStatus ?? 'OPEN',
     time: formatTimeUtc(booking.startTime),
-    client: booking.user?.name || booking.user?.phone || '—',
-    phone: booking.user?.phone || '—',
+    client:
+      booking.guestName?.trim() ||
+      booking.user?.name ||
+      booking.guestPhone ||
+      booking.user?.phone ||
+      '—',
+    phone: booking.guestPhone || booking.user?.phone || '—',
     car: booking.carDisplay
       ? booking.carDisplay
       : booking.car
@@ -214,7 +226,7 @@ const Dashboard = () => {
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">{booking.car}</Text>
                   <Text mt={1} fontSize="sm" color="lp.textMuted">Услуги: {booking.services}</Text>
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">
-                    Статус: {booking.status === 'pending' ? 'В ожидании' : booking.status === 'confirmed' ? 'Подтверждено' : booking.status}
+                    Статус: {getBookingStatusLabel(booking.status)}
                   </Text>
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">
                     Сотрудник: {booking.employee?.name ?? 'Не назначен'}
@@ -269,6 +281,15 @@ const Dashboard = () => {
                       {confirmBookingMutation.isPending ? 'Подтверждение...' : 'Подтвердить'}
                     </Button>
                   )}
+                  {booking.status === 'confirmed' && booking.closeStatus !== 'CLOSED' && (
+                    <Button
+                      size="sm"
+                      className="w-full bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b] sm:w-auto"
+                      onClick={() => setCloseBookingId(booking.id)}
+                    >
+                      Закрыть заказ
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -284,6 +305,17 @@ const Dashboard = () => {
           </Card>
         ))}
       </VStack>
+
+      {closeBookingId != null && (
+        <CloseOrderModal
+          bookingId={closeBookingId}
+          onClose={() => setCloseBookingId(null)}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['upcoming-bookings'] });
+            await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          }}
+        />
+      )}
     </Box>
   );
 };

@@ -93,6 +93,34 @@ export const adminAPI = {
     employeeId?: number | null;
     confirmImmediately?: boolean;
   }) => api.post("/admin/bookings", data),
+  getBooking: (id: number) => api.get(`/admin/bookings/${id}`),
+  closeBooking: (
+    id: number,
+    data: {
+      additionalItems: Array<{
+        serviceId?: number;
+        name: string;
+        price: number;
+      }>;
+      finalTotal?: number;
+      paidAmount: number;
+      paymentStatus:
+        | "UNPAID"
+        | "PAID_CASH"
+        | "PAID_CARD"
+        | "PAID_DEPOSIT"
+        | "PARTIAL";
+      closeNote?: string;
+    },
+  ) => api.post(`/admin/bookings/${id}/close`, data),
+  getDeposit: (phone: string) =>
+    api.get("/admin/deposits", { params: { phone } }),
+  deposit: (data: { phone: string; amount: number; note?: string }) =>
+    api.post("/admin/deposits", data),
+  adjustDeposit: (data: { phone: string; delta: number; note: string }) =>
+    api.post("/admin/deposits/adjust", data),
+  getReports: (from: string, to: string) =>
+    api.get("/admin/reports", { params: { from, to } }),
 };
 
 // Users API
@@ -105,22 +133,52 @@ export const usersAPI = {
   getStats: () => api.get("/users/stats"),
 };
 
-// Chemicals API
-export const chemicalsAPI = {
-  getAll: () => api.get("/chemicals"),
+// Stock / production API (legacy path /chemicals)
+export type StockTrackingMode = "PER_CHECK" | "PER_PERIOD";
+
+export const stockAPI = {
+  getAll: (trackingMode?: StockTrackingMode) =>
+    api.get("/chemicals", {
+      params: trackingMode ? { trackingMode } : {},
+    }),
   getOne: (id: number) => api.get(`/chemicals/${id}`),
-  create: (data: any) => api.post("/chemicals", data),
-  update: (id: number, data: any) => api.put(`/chemicals/${id}`, data),
+  create: (data: {
+    name: string;
+    brand?: string;
+    category: string;
+    unit: string;
+    trackingMode?: StockTrackingMode;
+    pricePerUnit: number;
+    currentStock: number;
+    minStock?: number;
+    description?: string;
+  }) => api.post("/chemicals", data),
+  update: (id: number, data: Record<string, unknown>) =>
+    api.put(`/chemicals/${id}`, data),
   delete: (id: number) => api.delete(`/chemicals/${id}`),
-  getLowStock: () => api.get("/chemicals/low-stock"),
+  getLowStock: (trackingMode?: StockTrackingMode) =>
+    api.get("/chemicals/low-stock", {
+      params: trackingMode ? { trackingMode } : {},
+    }),
   getUsageHistory: (params?: {
     chemicalId?: number;
+    trackingMode?: StockTrackingMode;
     startDate?: string;
     endDate?: string;
     limit?: number;
   }) => api.get("/chemicals/usage-history", { params }),
-  getUsageStats: (startDate: string, endDate: string) =>
-    api.get("/chemicals/usage-stats", { params: { startDate, endDate } }),
+  getUsageStats: (
+    startDate: string,
+    endDate: string,
+    trackingMode?: StockTrackingMode,
+  ) =>
+    api.get("/chemicals/usage-stats", {
+      params: {
+        startDate,
+        endDate,
+        ...(trackingMode ? { trackingMode } : {}),
+      },
+    }),
   recordUsage: (data: {
     chemicalId: number;
     quantity: number;
@@ -129,6 +187,9 @@ export const chemicalsAPI = {
     recordedBy: number;
   }) => api.post("/chemicals/record-usage", data),
 };
+
+/** @deprecated use stockAPI */
+export const chemicalsAPI = stockAPI;
 
 // Bookings API
 export const bookingsAPI = {
