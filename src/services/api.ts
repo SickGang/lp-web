@@ -92,6 +92,7 @@ export const adminAPI = {
     notes?: string;
     employeeId?: number | null;
     confirmImmediately?: boolean;
+    boxId?: number;
   }) => api.post("/admin/bookings", data),
   getBooking: (id: number) => api.get(`/admin/bookings/${id}`),
   closeBooking: (
@@ -113,6 +114,18 @@ export const adminAPI = {
       closeNote?: string;
     },
   ) => api.post(`/admin/bookings/${id}/close`, data),
+  updateBookingPayment: (
+    id: number,
+    data: {
+      paidAmount: number;
+      paymentStatus:
+        | "PAID_CASH"
+        | "PAID_CARD"
+        | "PAID_DEPOSIT"
+        | "PARTIAL";
+      note?: string;
+    },
+  ) => api.post(`/admin/bookings/${id}/update-payment`, data),
   getDeposit: (phone: string) =>
     api.get("/admin/deposits", { params: { phone } }),
   deposit: (data: { phone: string; amount: number; note?: string }) =>

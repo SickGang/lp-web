@@ -51,6 +51,7 @@ type Props = {
   date: string;
   slotStart: string;
   slotEnd: string;
+  boxId: number;
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -59,6 +60,7 @@ const AdminCreateBookingModal = ({
   date,
   slotStart,
   slotEnd,
+  boxId,
   onClose,
   onSuccess,
 }: Props) => {
@@ -230,6 +232,7 @@ const AdminCreateBookingModal = ({
         serviceIds,
         date,
         slotStart,
+        boxId,
         // Если сотрудник не выбран — создаём запись в статусе "pending",
         // чтобы позже можно было "взять в работу" и назначить сотрудника.
         confirmImmediately: selectedEmployeeId !== "",
@@ -312,7 +315,7 @@ const AdminCreateBookingModal = ({
       >
         <h3 className="mb-1 text-xl font-bold text-foreground">Новая запись</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          {date} · {slotStart} – {slotEnd}
+          {date} · {slotStart} – {slotEnd} · Бокс {boxId}
         </p>
 
         <div className="mb-4 flex gap-2 rounded-lg bg-muted p-1">

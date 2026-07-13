@@ -27,6 +27,7 @@ import {
 import { adminAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { formatRub, getPaymentStatusLabel } from "@/lib/reportFormat";
+import UpdatePaymentModal from "@/components/UpdatePaymentModal";
 
 type PeriodPreset = "today" | "week" | "month" | "custom";
 
@@ -120,6 +121,7 @@ const Reports = () => {
   const initial = presetRange("month");
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
+  const [payBookingId, setPayBookingId] = useState<number | null>(null);
 
   const applyPreset = (next: PeriodPreset) => {
     setPreset(next);
@@ -317,6 +319,7 @@ const Reports = () => {
                       <Th color="lp.textMuted" isNumeric>
                         Долг
                       </Th>
+                      <Th color="lp.textMuted" />
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -334,6 +337,15 @@ const Reports = () => {
                         </Td>
                         <Td color="lp.textPrimary" isNumeric>
                           {formatRub(item.debtAmount)}
+                        </Td>
+                        <Td>
+                          <Button
+                            size="xs"
+                            className="bg-[#D9E57F] text-[#17181C] hover:bg-[#c7d76b]"
+                            onClick={() => setPayBookingId(item.bookingId)}
+                          >
+                            Оплатить
+                          </Button>
                         </Td>
                       </Tr>
                     ))}
@@ -356,7 +368,7 @@ const Reports = () => {
               borderColor="lp.border"
               overflowX="auto"
             >
-              <Table size="sm" minW="760px">
+              <Table size="sm" minW="860px">
                 <Thead bg="lp.input">
                   <Tr>
                     <Th color="lp.textMuted">#</Th>
@@ -368,6 +380,7 @@ const Reports = () => {
                     <Th color="lp.textMuted" isNumeric>
                       Долг
                     </Th>
+                    <Th color="lp.textMuted" />
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -400,11 +413,30 @@ const Reports = () => {
                           ? formatRub(order.debtAmount)
                           : "—"}
                       </Td>
+                      <Td>
+                        {order.debtAmount > 0 && (
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setPayBookingId(order.id)}
+                          >
+                            Оплатить
+                          </Button>
+                        )}
+                      </Td>
                     </Tr>
                   ))}
                 </Tbody>
               </Table>
             </TableContainer>
+          )}
+
+          {payBookingId != null && (
+            <UpdatePaymentModal
+              bookingId={payBookingId}
+              onClose={() => setPayBookingId(null)}
+              onSuccess={() => setPayBookingId(null)}
+            />
           )}
         </>
       ) : null}

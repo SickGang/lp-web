@@ -30,6 +30,7 @@ interface ApiBooking {
   carDisplay?: string | null;
   guestName?: string | null;
   guestPhone?: string | null;
+  boxId?: number;
   user?: { name?: string; phone?: string } | null;
   car?: { brand: string; model: string };
   employeeId?: number | null;
@@ -123,6 +124,7 @@ const Dashboard = () => {
     status: booking.status,
     closeStatus: booking.closeStatus ?? 'OPEN',
     time: formatTimeUtc(booking.startTime),
+    boxId: booking.boxId ?? 1,
     client:
       booking.guestName?.trim() ||
       booking.user?.name ||
@@ -223,6 +225,9 @@ const Dashboard = () => {
                 <Box flex={1}>
                   <Text fontWeight="semibold" color="lp.textPrimary">{booking.client}</Text>
                   <Text fontSize="sm" color="lp.textSecondary">{booking.phone}</Text>
+                  <Text mt={1} fontSize="sm" color="lp.textSecondary">
+                    Бокс {booking.boxId}
+                  </Text>
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">{booking.car}</Text>
                   <Text mt={1} fontSize="sm" color="lp.textMuted">Услуги: {booking.services}</Text>
                   <Text mt={1} fontSize="sm" color="lp.textSecondary">
