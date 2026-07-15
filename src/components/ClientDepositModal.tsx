@@ -21,7 +21,8 @@ type LedgerEntry = {
 
 type AccountDetail = {
   id?: number;
-  phone: string;
+  phone?: string | null;
+  userId?: number | null;
   balance: number;
   ledger: LedgerEntry[];
 };
@@ -47,6 +48,7 @@ const ledgerTypeLabel: Record<LedgerEntry["type"], string> = {
 
 type Props = {
   phone?: string;
+  userId?: number;
   clientName?: string;
   onClose: () => void;
   onSuccess?: () => void;
@@ -54,6 +56,7 @@ type Props = {
 
 const ClientDepositModal = ({
   phone: phoneProp,
+  userId: userIdProp,
   clientName,
   onClose,
   onSuccess,
@@ -62,6 +65,8 @@ const ClientDepositModal = ({
   const [phoneInput, setPhoneInput] = useState("");
   const [resolvedPhone, setResolvedPhone] = useState(phoneProp ?? "");
   const activePhone = phoneProp ?? resolvedPhone;
+  const activeUserId = userIdProp;
+  const hasIdentity = Boolean(activePhone) || activeUserId != null;
   const [depositRub, setDepositRub] = useState("");
   const [depositNote, setDepositNote] = useState("");
   const [adjustRub, setAdjustRub] = useState("");
@@ -69,19 +74,40 @@ const ClientDepositModal = ({
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"deposit" | "adjust">("deposit");
 
+  const depositKey =
+    activeUserId != null
+      ? `user:${activeUserId}`
+      : activePhone
+        ? `phone:${activePhone}`
+        : "";
+
   const { data: account, isLoading } = useQuery({
-    queryKey: ["client-deposit", activePhone],
+    queryKey: ["client-deposit", depositKey],
     queryFn: async () => {
-      const res = await adminAPI.getDeposit(activePhone);
+      const res = await adminAPI.getDeposit(
+        activeUserId != null
+          ? { userId: activeUserId, phone: activePhone || undefined }
+          : { phone: activePhone },
+      );
       return res.data as AccountDetail;
     },
-    enabled: Boolean(activePhone),
+    enabled: hasIdentity,
   });
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["client-deposit", activePhone] });
+    await queryClient.invalidateQueries({ queryKey: ["client-deposit"] });
     await queryClient.invalidateQueries({ queryKey: ["users"] });
     onSuccess?.();
+  };
+
+  const identityPayload = () => {
+    if (activeUserId != null) {
+      return {
+        userId: activeUserId,
+        phone: activePhone || undefined,
+      };
+    }
+    return { phone: activePhone };
   };
 
   const depositMutation = useMutation({
@@ -89,7 +115,7 @@ const ClientDepositModal = ({
       const amount = rubToKopeks(depositRub);
       if (amount <= 0) throw new Error("Укажите сумму пополнения");
       return adminAPI.deposit({
-        phone: activePhone,
+        ...identityPayload(),
         amount,
         note: depositNote.trim() || undefined,
       });
@@ -111,7 +137,7 @@ const ClientDepositModal = ({
       if (delta === 0) throw new Error("Укажите сумму корректировки");
       if (!adjustNote.trim()) throw new Error("Укажите причину корректировки");
       return adminAPI.adjustDeposit({
-        phone: activePhone,
+        ...identityPayload(),
         delta,
         note: adjustNote.trim(),
       });
@@ -128,8 +154,10 @@ const ClientDepositModal = ({
   });
 
   const balance = account?.balance ?? 0;
+  const displayPhone =
+    activePhone || account?.phone || null;
 
-  if (!activePhone) {
+  if (!hasIdentity) {
     return (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -182,8 +210,13 @@ const ClientDepositModal = ({
       >
         <h2 className="mb-1 text-xl font-bold text-foreground">Депозит клиента</h2>
         <p className="mb-4 text-sm text-muted-foreground">
-          {clientName ? `${clientName} · ` : ""}
-          {formatRuPhoneDisplay(activePhone)}
+          {clientName ? `${clientName}` : ""}
+          {clientName && displayPhone ? " · " : ""}
+          {displayPhone
+            ? formatRuPhoneDisplay(displayPhone)
+            : activeUserId != null
+              ? "без телефона (Apple ID)"
+              : ""}
         </p>
 
         {isLoading ? (

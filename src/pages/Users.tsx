@@ -200,14 +200,14 @@ const Users = () => {
                   <Td color="lp.textSecondary">{new Date(user.createdAt).toLocaleDateString('ru-RU')}</Td>
                   <Td color="lp.textSecondary">{user.bookingsCount}</Td>
                   <Td color="lp.textSecondary">
-                    {user.role === 'CLIENT' && user.phone !== 'Не указан'
+                    {user.role === 'CLIENT'
                       ? `${(user.depositBalance / 100).toLocaleString('ru-RU')} ₽`
                       : '—'}
                   </Td>
                   <Td>
                     {user.role !== 'OWNER' && (
                       <HStack spacing={2}>
-                        {user.role === 'CLIENT' && user.phone !== 'Не указан' && (
+                        {user.role === 'CLIENT' && (
                           <Button
                             size="xs"
                             variant="outline"
@@ -340,9 +340,14 @@ const Users = () => {
         </ModalContent>
       </Modal>
 
-      {depositTarget && depositTarget.phone !== 'Не указан' && (
+      {depositTarget && (
         <ClientDepositModal
-          phone={depositTarget.phone}
+          userId={depositTarget.id}
+          phone={
+            depositTarget.phone !== 'Не указан'
+              ? depositTarget.phone
+              : undefined
+          }
           clientName={depositTarget.name}
           onClose={() => setDepositTarget(null)}
           onSuccess={() => {

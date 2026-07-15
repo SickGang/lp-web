@@ -126,12 +126,23 @@ export const adminAPI = {
       note?: string;
     },
   ) => api.post(`/admin/bookings/${id}/update-payment`, data),
-  getDeposit: (phone: string) =>
-    api.get("/admin/deposits", { params: { phone } }),
-  deposit: (data: { phone: string; amount: number; note?: string }) =>
-    api.post("/admin/deposits", data),
-  adjustDeposit: (data: { phone: string; delta: number; note: string }) =>
-    api.post("/admin/deposits/adjust", data),
+  getDeposit: (params: { phone?: string; userId?: number } | string) =>
+    api.get("/admin/deposits", {
+      params:
+        typeof params === "string" ? { phone: params } : params,
+    }),
+  deposit: (data: {
+    phone?: string;
+    userId?: number;
+    amount: number;
+    note?: string;
+  }) => api.post("/admin/deposits", data),
+  adjustDeposit: (data: {
+    phone?: string;
+    userId?: number;
+    delta: number;
+    note: string;
+  }) => api.post("/admin/deposits/adjust", data),
   getReports: (from: string, to: string) =>
     api.get("/admin/reports", { params: { from, to } }),
 };

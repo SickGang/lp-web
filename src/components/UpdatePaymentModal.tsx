@@ -13,6 +13,7 @@ type PaymentStatus =
 
 type BookingDetail = {
   id: number;
+  userId?: number | null;
   finalTotal?: number | null;
   paidAmount: number;
   paymentStatus: string;
@@ -71,14 +72,25 @@ const UpdatePaymentModal = ({ bookingId, onClose, onSuccess }: Props) => {
   const debt = Math.max(0, finalTotal - alreadyPaid);
   const clientPhone =
     booking?.guestPhone?.trim() || booking?.user?.phone?.trim() || "";
+  const clientUserId = booking?.userId ?? null;
+  const depositIdentityKey =
+    clientUserId != null
+      ? `user:${clientUserId}`
+      : clientPhone
+        ? `phone:${clientPhone}`
+        : "";
 
   const { data: depositData } = useQuery({
-    queryKey: ["client-deposit", clientPhone],
+    queryKey: ["client-deposit", depositIdentityKey],
     queryFn: async () => {
-      const res = await adminAPI.getDeposit(clientPhone);
+      const res = await adminAPI.getDeposit(
+        clientUserId != null
+          ? { userId: clientUserId, phone: clientPhone || undefined }
+          : { phone: clientPhone },
+      );
       return res.data as { balance: number };
     },
-    enabled: Boolean(clientPhone),
+    enabled: Boolean(depositIdentityKey),
   });
 
   const depositBalance = depositData?.balance ?? 0;

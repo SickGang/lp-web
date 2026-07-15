@@ -583,13 +583,6 @@ const Bookings = () => {
         >
           Неделя
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowDepositModal(true)}
-        >
-          Депозит клиента
-        </Button>
       </div>
 
       <h2 className="mb-6 text-3xl font-semibold text-foreground">

@@ -28,6 +28,7 @@ type ServiceItem = {
 type BookingDetail = {
   id: number;
   totalPrice: number;
+  userId?: number | null;
   guestName?: string | null;
   guestPhone?: string | null;
   carDisplay?: string | null;
@@ -91,14 +92,25 @@ const CloseOrderModal = ({ bookingId, onClose, onSuccess }: Props) => {
 
   const clientPhone =
     booking?.guestPhone?.trim() || booking?.user?.phone?.trim() || "";
+  const clientUserId = booking?.userId ?? null;
+  const depositIdentityKey =
+    clientUserId != null
+      ? `user:${clientUserId}`
+      : clientPhone
+        ? `phone:${clientPhone}`
+        : "";
 
   const { data: depositData } = useQuery({
-    queryKey: ["client-deposit", clientPhone],
+    queryKey: ["client-deposit", depositIdentityKey],
     queryFn: async () => {
-      const res = await adminAPI.getDeposit(clientPhone);
+      const res = await adminAPI.getDeposit(
+        clientUserId != null
+          ? { userId: clientUserId, phone: clientPhone || undefined }
+          : { phone: clientPhone },
+      );
       return res.data as { balance: number };
     },
-    enabled: Boolean(clientPhone),
+    enabled: Boolean(depositIdentityKey),
   });
 
   const depositBalance = depositData?.balance ?? 0;
@@ -119,7 +131,7 @@ const CloseOrderModal = ({ bookingId, onClose, onSuccess }: Props) => {
   const autoFinalKopeks = (booking?.totalPrice ?? 0) + additionalKopeks;
   const finalKopeksNow = rubToKopeks(finalTotalRub);
   const canPayFromDeposit =
-    Boolean(clientPhone) && depositBalance > 0 && autoFinalKopeks > 0;
+    Boolean(depositIdentityKey) && depositBalance > 0 && autoFinalKopeks > 0;
 
   useEffect(() => {
     if (!booking || paymentTouched.current || !canPayFromDeposit) return;
