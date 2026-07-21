@@ -19,6 +19,11 @@ import { usersAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ClientDepositPanel from "./ClientDepositPanel";
+import {
+  formatRuPhoneDisplay,
+  isRuPhoneComplete,
+  ruPhoneToE164,
+} from "@/lib/ruPhoneMask";
 
 export type EditUserTarget = {
   id: number;
@@ -78,6 +83,9 @@ const EditUserModal = ({
 }: Props) => {
   const queryClient = useQueryClient();
   const [name, setName] = useState(user.name);
+  const [phoneInput, setPhoneInput] = useState(
+    user.phone !== "Не указан" ? formatRuPhoneDisplay(user.phone) : "",
+  );
   const [role, setRole] = useState<NonOwnerRole>(
     user.role === "OWNER" ? "ADMIN" : user.role,
   );
@@ -90,6 +98,7 @@ const EditUserModal = ({
 
   useEffect(() => {
     setName(user.name);
+    setPhoneInput(user.phone !== "Не указан" ? formatRuPhoneDisplay(user.phone) : "");
     setRole(user.role === "OWNER" ? "ADMIN" : user.role);
     setError("");
   }, [user]);
@@ -101,18 +110,31 @@ const EditUserModal = ({
         throw new Error("Укажите имя клиента");
       }
 
-      const tasks: Promise<unknown>[] = [];
+      const nextPhoneE164 =
+        phoneInput.trim() === ""
+          ? undefined
+          : (() => {
+              if (!isRuPhoneComplete(phoneInput)) {
+                throw new Error("Введите полный номер телефона");
+              }
+              return ruPhoneToE164(phoneInput);
+            })();
 
-      if (trimmedName !== user.name) {
-        tasks.push(usersAPI.update(user.id, { name: trimmedName }));
+      const payload: { name?: string; phone?: string } = {};
+      if (trimmedName !== user.name) payload.name = trimmedName;
+      if (
+        (nextPhoneE164 ?? undefined) !==
+        (user.phone !== "Не указан" ? ruPhoneToE164(user.phone) : undefined)
+      ) {
+        payload.phone = nextPhoneE164;
       }
 
+      const tasks: Promise<unknown>[] = [];
+      if (Object.keys(payload).length > 0) {
+        tasks.push(usersAPI.update(user.id, payload));
+      }
       if (canEditRole && role !== user.role) {
         tasks.push(usersAPI.updateRole(user.id, role));
-      }
-
-      if (tasks.length === 0) {
-        return;
       }
 
       await Promise.all(tasks);
@@ -140,7 +162,9 @@ const EditUserModal = ({
   });
 
   const hasProfileChanges =
-    name.trim() !== user.name || (canEditRole && role !== user.role);
+    name.trim() !== user.name ||
+    (phoneInput !== (user.phone !== "Не указан" ? formatRuPhoneDisplay(user.phone) : "")) ||
+    (canEditRole && role !== user.role);
 
   const handleDelete = () => {
     const ok = window.confirm(
@@ -161,7 +185,11 @@ const EditUserModal = ({
             <Text fontSize="sm" color="lp.textMuted" mb={1}>
               Телефон
             </Text>
-            <Text color="lp.textSecondary">{user.phone}</Text>
+            <Input
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(formatRuPhoneDisplay(e.target.value))}
+              placeholder="+7 (999) 999-99-99"
+            />
           </Box>
 
           <Box mb={4}>
