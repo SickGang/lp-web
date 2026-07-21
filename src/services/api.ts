@@ -151,6 +151,21 @@ export const adminAPI = {
 export const usersAPI = {
   getAll: (role?: string) => api.get("/users", { params: { role } }),
   getOne: (id: number) => api.get(`/users/${id}`),
+  create: (data: {
+    name: string;
+    phone?: string;
+    password?: string;
+    role?: "CLIENT" | "ADMIN" | "OWNER";
+    email?: string;
+    appleSub?: string;
+    telegramId?: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    photoUrl?: string;
+  }) => api.post("/users", data),
+  update: (id: number, data: { name?: string; phone?: string }) =>
+    api.patch(`/users/${id}`, data),
   updateRole: (id: number, role: string) =>
     api.patch(`/users/${id}/role`, { role }),
   delete: (id: number) => api.delete(`/users/${id}`),
