@@ -77,6 +77,21 @@ export const adminAPI = {
     api.get("/admin/clients", { params: search ? { search } : {} }),
   lookupClient: (phone: string) =>
     api.get("/admin/clients/lookup", { params: { phone } }),
+  listClientCars: (userId: number) =>
+    api.get(`/admin/clients/${userId}/cars`),
+  createClientCar: (
+    userId: number,
+    data: {
+      brand: string;
+      model: string;
+      catalogModelId?: string;
+      catalogClass?: string;
+      hasNoPlate: boolean;
+      licensePlate?: string;
+    },
+  ) => api.post(`/admin/clients/${userId}/cars`, data),
+  deleteClientCar: (userId: number, carId: number) =>
+    api.delete(`/admin/clients/${userId}/cars/${carId}`),
   createBooking: (data: {
     userId?: number;
     guestOnly?: boolean;

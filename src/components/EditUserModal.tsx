@@ -19,6 +19,7 @@ import { usersAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ClientDepositPanel from "./ClientDepositPanel";
+import AdminClientCarsPanel from "./AdminClientCarsPanel";
 import {
   formatRuPhoneDisplay,
   isRuPhoneComplete,
@@ -230,6 +231,12 @@ const EditUserModal = ({
 
           {user.role === "CLIENT" && (
             <>
+              <Divider my={4} borderColor="lp.border" />
+              <Text fontSize="md" fontWeight="semibold" color="lp.textPrimary" mb={3}>
+                Автомобили
+              </Text>
+              <AdminClientCarsPanel userId={user.id} />
+
               <Divider my={4} borderColor="lp.border" />
               <Text fontSize="md" fontWeight="semibold" color="lp.textPrimary" mb={3}>
                 Депозит

@@ -12,10 +12,12 @@ import {
   Text,
   Select,
   SimpleGrid,
+  Divider,
 } from "@chakra-ui/react";
-import { usersAPI } from "../services/api";
+import { adminAPI, usersAPI } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import CarCatalogPicker from "@/components/CarCatalogPicker";
 import {
   formatRuPhoneDisplay,
   isRuPhoneComplete,
@@ -63,6 +65,13 @@ const CreateUserModal = ({ currentUserRole, onClose, onSuccess }: Props) => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
 
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [catalogModelId, setCatalogModelId] = useState("");
+  const [catalogClass, setCatalogClass] = useState("");
+  const [hasNoPlate, setHasNoPlate] = useState(false);
+  const [licensePlate, setLicensePlate] = useState("");
+
   const isOwner = currentUserRole === "OWNER";
   const roleOptions: UserRole[] = isOwner
     ? ["CLIENT", "ADMIN", "OWNER"]
@@ -87,6 +96,16 @@ const CreateUserModal = ({ currentUserRole, onClose, onSuccess }: Props) => {
         throw new Error("Пароль должен быть не короче 4 символов");
       }
 
+      const wantsCar = form.role === "CLIENT" && (!!brand.trim() || !!model.trim() || !!licensePlate.trim());
+      if (wantsCar) {
+        if (!brand.trim() || !model.trim()) {
+          throw new Error("Для автомобиля выберите марку и модель");
+        }
+        if (!hasNoPlate && !licensePlate.trim()) {
+          throw new Error("Укажите госномер или отметьте «Без номера»");
+        }
+      }
+
       const payload: Parameters<typeof usersAPI.create>[0] = {
         name,
         role: form.role,
@@ -96,7 +115,23 @@ const CreateUserModal = ({ currentUserRole, onClose, onSuccess }: Props) => {
       if (form.password.trim()) payload.password = form.password.trim();
       if (form.email.trim()) payload.email = form.email.trim();
 
-      return usersAPI.create(payload);
+      const created = await usersAPI.create(payload);
+      const userId = (created.data as { id: number }).id;
+
+      if (wantsCar && userId) {
+        await adminAPI.createClientCar(userId, {
+          brand: brand.trim(),
+          model: model.trim(),
+          catalogModelId: catalogModelId || undefined,
+          catalogClass: catalogClass || undefined,
+          hasNoPlate,
+          licensePlate: hasNoPlate
+            ? undefined
+            : licensePlate.trim().toUpperCase(),
+        });
+      }
+
+      return created;
     },
     onSuccess: () => {
       onSuccess();
@@ -115,7 +150,7 @@ const CreateUserModal = ({ currentUserRole, onClose, onSuccess }: Props) => {
         <ModalCloseButton />
         <ModalBody>
           <Text fontSize="sm" color="lp.textMuted" mb={4}>
-            Обязательно только ФИО; остальные поля — по необходимости.
+            Обязательно только ФИО; автомобиль — по желанию.
           </Text>
 
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
@@ -178,6 +213,62 @@ const CreateUserModal = ({ currentUserRole, onClose, onSuccess }: Props) => {
               />
             </Box>
           </SimpleGrid>
+
+          {form.role === "CLIENT" && (
+            <>
+              <Divider my={4} borderColor="lp.border" />
+              <Text fontSize="sm" fontWeight="semibold" color="lp.textPrimary" mb={1}>
+                Автомобиль
+              </Text>
+              <Text fontSize="xs" color="lp.textMuted" mb={3}>
+                Можно пропустить и добавить позже в карточке клиента.
+              </Text>
+
+              <Box mb={3}>
+                <CarCatalogPicker
+                  brand={brand}
+                  model={model}
+                  onBrandChange={(name) => {
+                    setBrand(name);
+                    setModel("");
+                    setCatalogModelId("");
+                    setCatalogClass("");
+                  }}
+                  onModelChange={(name, modelId, cls) => {
+                    setModel(name);
+                    setCatalogModelId(modelId);
+                    setCatalogClass(cls);
+                  }}
+                />
+              </Box>
+
+              <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={hasNoPlate}
+                  onChange={(e) => {
+                    setHasNoPlate(e.target.checked);
+                    if (e.target.checked) setLicensePlate("");
+                  }}
+                  className="accent-[#D9E57F]"
+                />
+                Без госномера
+              </label>
+
+              {!hasNoPlate && (
+                <Box mb={3}>
+                  <Text fontSize="xs" color="lp.textMuted" mb={1}>
+                    Госномер
+                  </Text>
+                  <Input
+                    value={licensePlate}
+                    onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                    placeholder="А123БВ77"
+                  />
+                </Box>
+              )}
+            </>
+          )}
 
           {error && (
             <Text fontSize="sm" color="lp.error">
