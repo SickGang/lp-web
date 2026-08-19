@@ -97,6 +97,7 @@ export const adminAPI = {
     guestOnly?: boolean;
     phone?: string;
     clientName?: string;
+    addClientToDatabase?: boolean;
     serviceIds: number[];
     date: string;
     slotStart: string;

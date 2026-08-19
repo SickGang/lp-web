@@ -78,6 +78,7 @@ const AdminCreateBookingModal = ({
   const [serviceIds, setServiceIds] = useState<number[]>([]);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [addClientToDatabase, setAddClientToDatabase] = useState(false);
 
   const phoneE164 = isRuPhoneComplete(phone) ? ruPhoneToE164(phone) : "";
 
@@ -258,6 +259,7 @@ const AdminCreateBookingModal = ({
       payload.guestOnly = true;
       payload.phone = phoneE164;
       payload.clientName = clientName.trim() || "Гость";
+      payload.addClientToDatabase = addClientToDatabase;
       if (notes.trim()) payload.notes = notes.trim();
       if (carBrand.trim() && carModel.trim()) {
         payload.carBrand = carBrand.trim();
@@ -330,6 +332,7 @@ const AdminCreateBookingModal = ({
             onClick={() => {
               setMode("existing");
               setError("");
+              setAddClientToDatabase(false);
             }}
           >
             Клиент из базы
@@ -350,6 +353,7 @@ const AdminCreateBookingModal = ({
               setCarModel("");
               setCatalogClass("");
               setError("");
+              setAddClientToDatabase(false);
             }}
           >
             Разовая запись
@@ -399,9 +403,24 @@ const AdminCreateBookingModal = ({
             </>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground">
-                Данные сохраняются только в записи, клиент в базу не добавляется.
-              </p>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1 accent-[#D9E57F]"
+                    checked={addClientToDatabase}
+                    onChange={(e) => setAddClientToDatabase(e.target.checked)}
+                  />
+                  <span>Добавить клиента в базу данных</span>
+                </label>
+
+                {!addClientToDatabase && (
+                  <p className="text-xs text-muted-foreground">
+                    Данные сохраняются только в записи (клиент в БД не
+                    создаётся).
+                  </p>
+                )}
+              </div>
               <div>
                 <label className="mb-1 block text-sm text-muted-foreground">
                   Телефон
